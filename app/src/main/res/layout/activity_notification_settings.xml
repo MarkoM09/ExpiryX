@@ -44,7 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/topBar"
-        android:layout_above="@id/bottomNavWrapper"
+        android:layout_above="@id/bottomNav"
         android:scrollbars="none">
 
         <LinearLayout
@@ -221,115 +221,10 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom nav -->
-    <LinearLayout
-        android:id="@+id/bottomNavWrapper"
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/include_bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:orientation="vertical"
-        android:background="?android:attr/colorBackground"
-        android:elevation="6dp">
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="?attr/colorOutline"/>
-
-        <LinearLayout
-            android:id="@+id/bottomNav"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:weightSum="4"
-            android:paddingHorizontal="4dp"
-            android:paddingTop="4dp">
-
-            <LinearLayout
-                android:id="@+id/navHomeWrapper"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:id="@+id/navHome"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_home_unfilled"
-                    app:tint="?attr/colorOnSurface"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Home"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurface"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/navHistoryWrapper"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:id="@+id/navHistory"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_clock_unfilled"
-                    app:tint="?attr/colorOnSurface"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="History"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurface"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/navStatsWrapper"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:id="@+id/navStats"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_stats_unfilled"
-                    app:tint="?attr/colorOnSurface"
-                    android:contentDescription="@string/nav_stats_desc"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/nav_stats"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurface"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/navSettingsWrapper"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:id="@+id/navSettings"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_settings_unfilled"
-                    app:tint="?attr/colorOnSurface"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Settings"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurface"/>
-            </LinearLayout>
-        </LinearLayout>
-    </LinearLayout>
+        android:layout_alignParentBottom="true" />
 </RelativeLayout>

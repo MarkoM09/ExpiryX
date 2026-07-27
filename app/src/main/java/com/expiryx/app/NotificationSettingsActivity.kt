@@ -39,7 +39,6 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
 
         setupUI()
         setupBottomNav()
-        highlightCurrentTab()
     }
 
     private fun setupUI() {
@@ -246,11 +245,13 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
             .show()
     }
 
-    private fun highlightCurrentTab() {
-        binding.navHome.setImageResource(R.drawable.ic_home_unfilled)
-        binding.navHistory.setImageResource(R.drawable.ic_clock_unfilled)
-        binding.navStats.setImageResource(R.drawable.ic_stats_unfilled)
-        binding.navSettings.setImageResource(R.drawable.ic_settings_filled)
+    override fun onResume() {
+        super.onResume()
+        setupBottomNav()
+    }
+
+    private fun setupBottomNav() {
+        BottomNavHelper.setup(this, binding.bottomNav.bottomNavigationView, R.id.nav_settings)
     }
 
     private fun rescheduleAllNotifications() {
@@ -261,29 +262,6 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@NotificationSettingsActivity, "Notifications updated", Toast.LENGTH_SHORT).show()
             }
-        }
-    }
-
-    private fun setupBottomNav() {
-        binding.navHomeWrapper.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
-        binding.navHistoryWrapper.setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
-        binding.navStatsWrapper.setOnClickListener {
-            startActivity(Intent(this, StatsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
-        binding.navSettingsWrapper.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
         }
     }
 

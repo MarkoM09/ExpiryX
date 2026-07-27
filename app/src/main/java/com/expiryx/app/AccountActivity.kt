@@ -23,6 +23,7 @@ class AccountActivity : ThemedAppCompatActivity() {
 
         setupUI()
         setupListeners()
+        setupBottomNav()
     }
 
     private fun setupUI() {
@@ -58,29 +59,17 @@ class AccountActivity : ThemedAppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        setupBottomNav()
+    }
+
+    private fun setupBottomNav() {
+        BottomNavHelper.setup(this, binding.bottomNav.bottomNavigationView, R.id.nav_settings)
+    }
+
     private fun setupListeners() {
         binding.btnBack.setOnClickListener { finish() }
-
-        binding.navHomeWrapper.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
-        binding.navHistoryWrapper.setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
-        binding.navStatsWrapper.setOnClickListener {
-            startActivity(Intent(this, StatsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
-        binding.navSettingsWrapper.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
-            overridePendingTransition(0, 0)
-            finish()
-        }
 
         binding.btnSignOut.setOnClickListener {
             MaterialAlertDialogBuilder(this)
