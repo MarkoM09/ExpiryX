@@ -99,7 +99,10 @@ class HistoryActivity : ThemedAppCompatActivity() {
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())
-            val bottomInset = maxOf(systemBars.bottom, imeInsets.bottom)
+            
+            val bottomPadding = systemBars.bottom
+            val keyboardHeight = imeInsets.bottom
+            val isKeyboardVisible = insets.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())
 
             binding.topBar.setPadding(
                 binding.topBar.paddingLeft,
@@ -108,14 +111,22 @@ class HistoryActivity : ThemedAppCompatActivity() {
                 binding.topBar.paddingBottom
             )
 
-            // Ensure empty state and recycler aren't hidden by keyboard
+            // Standardize padding for recycler
             binding.recyclerHistory.setPadding(
                 binding.recyclerHistory.paddingLeft,
                 binding.recyclerHistory.paddingTop,
                 binding.recyclerHistory.paddingRight,
-                (80 * resources.displayMetrics.density).toInt() + bottomInset
+                (80 * resources.displayMetrics.density).toInt() + bottomPadding
             )
-            binding.emptyStateLayoutHistory.root.setPadding(0, 0, 0, bottomInset)
+            
+            // Center empty state between top bar and keyboard by applying padding to inner container
+            val hPad = (32 * resources.displayMetrics.density).toInt()
+            val vPad = (32 * resources.displayMetrics.density).toInt()
+            if (isKeyboardVisible) {
+                binding.emptyStateLayoutHistory.emptyStateInnerContainer.setPadding(hPad, vPad, hPad, keyboardHeight)
+            } else {
+                binding.emptyStateLayoutHistory.emptyStateInnerContainer.setPadding(hPad, vPad, hPad, bottomPadding)
+            }
 
             insets
         }
@@ -371,11 +382,13 @@ class HistoryActivity : ThemedAppCompatActivity() {
     private fun updateUI(list: List<History>) {
         adapter.updateData(list)
 
-        val isSearching = searchQuery.isNotEmpty()
+        val isSearchVisible = binding.searchViewHistory.visibility == View.VISIBLE
+        val isQueryNotEmpty = searchQuery.isNotEmpty()
         val hasResults = list.isNotEmpty()
 
-        binding.countersLayout.visibility = if (isSearching) View.GONE else View.VISIBLE
-        binding.layoutSortHistoryInclude.root.visibility = if (isSearching) View.GONE else View.VISIBLE
+        // Hide pills and sort bar if search is active (even if query is empty)
+        binding.countersLayout.visibility = if (isSearchVisible) View.GONE else View.VISIBLE
+        binding.layoutSortHistoryInclude.root.visibility = if (isSearchVisible) View.GONE else View.VISIBLE
 
         val emptyState = binding.emptyStateLayoutHistory
         
@@ -397,7 +410,7 @@ class HistoryActivity : ThemedAppCompatActivity() {
             emptyState.root.visibility = View.VISIBLE
 
             when {
-                isSearching -> {
+                isQueryNotEmpty -> {
                     emptyState.emptyStateIcon.setImageResource(R.drawable.ic_search_unfilled)
                     emptyState.emptyStateTitle.text = getString(R.string.empty_state_title_no_results)
                     emptyState.emptyStateSubtitle.text = getString(R.string.empty_state_subtitle_no_results)
@@ -416,7 +429,7 @@ class HistoryActivity : ThemedAppCompatActivity() {
             }
         }
 
-        if (!isSearching) {
+        if (!isSearchVisible) {
             val expiredCount = fullList.count { it.action == "Expired" }
             val usedCount = fullList.count { it.action == "Used" }
             val deletedCount = fullList.count { it.action == "Deleted" }

@@ -54,7 +54,7 @@ class AccountActivity : ThemedAppCompatActivity() {
                 )
             }
         } else {
-            finish() // Should not happen if redirected from Settings while logged in
+            finish()
         }
     }
 
@@ -88,8 +88,8 @@ class AccountActivity : ThemedAppCompatActivity() {
                 .setMessage("Are you sure you want to sign out?")
                 .setPositiveButton("Sign Out") { _, _ ->
                     AccountManager.signOut(this) {
-                        val intent = Intent(this, LoginActivity::class.java).apply {
-                            putExtra("force_login", true)
+                        // Redirect back to Settings (management context) as a guest
+                        val intent = Intent(this, SettingsActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                         }
                         startActivity(intent)
@@ -140,8 +140,7 @@ class AccountActivity : ThemedAppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     AccountManager.signOut(this@AccountActivity) {
                         Toast.makeText(this@AccountActivity, "Account and data wiped", Toast.LENGTH_LONG).show()
-                        val intent = Intent(this@AccountActivity, LoginActivity::class.java).apply {
-                            putExtra("force_login", true)
+                        val intent = Intent(this@AccountActivity, SettingsActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                         }
                         startActivity(intent)

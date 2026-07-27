@@ -16,13 +16,13 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 1
-        versionName = "2.1.0-alpha" // version shown in Settings
+        versionName = "2.2.0-alpha" // version shown in Settings
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // FIXED: Use a literal string or access from project properties if needed, 
         // but ensuring it's not null here.
-        resValue("string", "app_version_name", "2.1.0-alpha")
+        resValue("string", "app_version_name", "2.2.0-alpha")
     }
 
 

@@ -128,5 +128,6 @@
         <item name="expiryTextSafe">@color/white</item>
         <item name="expiryTextUrgent">@color/white</item>
         <item name="expiryTextExpired">@color/white</item>
+        <item name="android:textStyle">bold</item>
     </style>
 </resources>

@@ -38,17 +38,18 @@ class SettingsActivity : ThemedAppCompatActivity() {
         setupWindowInsets()
         binding.appVersionText.text = getString(R.string.version_format, getString(R.string.app_version_name))
 
-        // Setup Account Section
-        setupAccountSection()
+        // Restore scroll position
+        val scrollY = intent.getIntExtra("SCROLL_Y", 0)
+        if (scrollY > 0) {
+            binding.settingsScrollView.post {
+                binding.settingsScrollView.scrollTo(0, scrollY)
+            }
+        }
 
-        // Setup dark mode toggle
+        setupAccountSection()
         setupDarkModeToggle()
         setupAccentThemePicker()
-
-        // Setup Sync Toggle
         setupSyncToggle()
-
-        // Setup Accessibility Toggles
         setupAccessibilityToggles()
 
         binding.notificationsCard.setOnClickListener {
@@ -87,6 +88,16 @@ class SettingsActivity : ThemedAppCompatActivity() {
         refreshAccentSubtitle()
     }
 
+    private fun smartRecreate() {
+        val scrollY = binding.settingsScrollView.scrollY
+        val intent = intent
+        intent.putExtra("SCROLL_Y", scrollY)
+        finish()
+        overridePendingTransition(0, 0)
+        startActivity(intent)
+        overridePendingTransition(0, 0)
+    }
+
     private fun setupWindowInsets() {
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
@@ -106,13 +117,13 @@ class SettingsActivity : ThemedAppCompatActivity() {
             ThemeManager.getAccentLabel(this)
         )
         AccentThemePicker.bindInlineSwatch(this, binding.accentSwatchPreview) {
-            recreate()
+            smartRecreate()
         }
     }
 
     private fun setupAccentThemePicker() {
         binding.accentThemeCard.setOnClickListener {
-            AccentThemePicker.show(this) { recreate() }
+            AccentThemePicker.show(this) { smartRecreate() }
         }
     }
 
@@ -190,7 +201,7 @@ class SettingsActivity : ThemedAppCompatActivity() {
                     else -> ThemeManager.THEME_SYSTEM
                 }
                 ThemeManager.setThemeMode(this, newMode)
-                recreate()
+                smartRecreate()
             }
         }
     }
@@ -208,16 +219,13 @@ class SettingsActivity : ThemedAppCompatActivity() {
         binding.switchHighContrast.isChecked = Prefs.isHighContrastEnabled(this)
         binding.switchHighContrast.setOnCheckedChangeListener { _, isChecked ->
             Prefs.setHighContrastEnabled(this, isChecked)
-            recreate()
+            smartRecreate()
         }
 
         binding.switchColorblind.isChecked = Prefs.isColorblindModeEnabled(this)
         binding.switchColorblind.setOnCheckedChangeListener { _, isChecked ->
             Prefs.setColorblindModeEnabled(this, isChecked)
-            // No need to recreate everything, but might be safer for list updates.
-            // If the list uses ExpiryDisplayUtils, it will pick it up on next bind.
-            // For immediate effect on home/history, recreate is easiest.
-            recreate()
+            smartRecreate()
         }
     }
 

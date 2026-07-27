@@ -208,4 +208,8 @@
     <string name="high_contrast_subtitle">Force absolute black/white text</string>
     <string name="colorblind_assist_title">Colorblind Assist Overlay</string>
     <string name="colorblind_assist_subtitle">Add patterns/text to expiry pills</string>
+
+    <string name="expiry_status_expired">EXPIRED</string>
+    <string name="expiry_status_urgent">URGENT</string>
+    <string name="expiry_status_safe">SAFE</string>
 </resources>

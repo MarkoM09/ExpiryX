@@ -97,16 +97,25 @@ class MainActivity : ThemedAppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.rootCoordinator) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val bottomInset = maxOf(systemBars.bottom, imeInsets.bottom)
+            
+            val bottomPadding = systemBars.bottom
+            val keyboardHeight = imeInsets.bottom
+            val isKeyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
 
             binding.topBar.updatePadding(top = systemBars.top)
 
-            // Ensure FAB and Recycler don't overlap with navigation/keyboard
+            // Standard padding for recycler so items aren't hidden by nav/fab
             val fabPadding = (88 * resources.displayMetrics.density).toInt()
-            binding.recyclerProducts.updatePadding(bottom = fabPadding + bottomInset)
+            binding.recyclerProducts.updatePadding(bottom = fabPadding + bottomPadding)
             
-            // For the empty state, we want the content to be pushed up above the keyboard
-            binding.emptyStateLayout.root.updatePadding(bottom = bottomInset)
+            // Centering logic for empty state by applying padding to inner container
+            val hPad = (32 * resources.displayMetrics.density).toInt()
+            val vPad = (32 * resources.displayMetrics.density).toInt()
+            if (isKeyboardVisible) {
+                binding.emptyStateLayout.emptyStateInnerContainer.setPadding(hPad, vPad, hPad, keyboardHeight)
+            } else {
+                binding.emptyStateLayout.emptyStateInnerContainer.setPadding(hPad, vPad, hPad, bottomPadding)
+            }
 
             insets
         }
@@ -392,12 +401,19 @@ class MainActivity : ThemedAppCompatActivity() {
         binding.searchView.visibility = View.VISIBLE
         binding.searchView.isIconified = false
         binding.searchView.requestFocus()
+        
+        // Hide dashboard bar to give more room and avoid layout glitching
+        binding.dashboardBar.visibility = View.GONE
     }
 
     private fun closeSearchCompletely() {
         binding.searchView.setQuery("", false)
         binding.searchView.clearFocus()
         binding.searchView.visibility = View.GONE
+        
+        // Restore dashboard bar
+        binding.dashboardBar.visibility = View.VISIBLE
+
         refreshList()
     }
 
