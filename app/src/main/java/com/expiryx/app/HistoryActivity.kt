@@ -15,6 +15,14 @@ import com.expiryx.app.databinding.ActivityHistoryBinding
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * FUNCTIONALITY: Manages the archived items view, displaying historical logs of 
+ * consumed, expired, or deleted products with support for searching, filtering, and sorting.
+ * USE OF DATA: Observes 'LiveData<List<History>>' from HistoryViewModel. Maintains 
+ * local state for filters (showExpired, showConsumed, etc.) and 'searchQuery' (String).
+ * USE OF CODE STRUCTURES: Extends 'ThemedAppCompatActivity'; attaches RecyclerView 
+ * adapter with Linear managers and uses the Observer pattern to reactively update the UI.
+ */
 class HistoryActivity : ThemedAppCompatActivity() {
 
     private lateinit var binding: ActivityHistoryBinding
@@ -88,7 +96,7 @@ class HistoryActivity : ThemedAppCompatActivity() {
         setupFilter()
         setupBottomNav()
 
-        // Observe data
+        // CODE STRUCTURE: Observer pattern updating adapter content when database records change
         viewModel.allHistory.observe(this) { list ->
             fullList = list ?: emptyList()
             applyFilters()
@@ -132,7 +140,15 @@ class HistoryActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Logic for moving an item from the history log back to the active inventory.
+     * USE OF DATA: Accepts 'History' object. For "Expired" items, uses 'DatePickerDialog' 
+     * to collect a new 'Long' timestamp.
+     * USE OF CODE STRUCTURES: 'when' selection structure branching based on the original 
+     * 'action' String to execute appropriate restoration logic.
+     */
     private fun handleRestore(h: History) {
+        // CODE STRUCTURE: Branching selection determining restoration workflow
         when (h.action) {
             "Expired" -> {
                 // For expired, we show a date picker to choose a new expiry before restoring
@@ -148,8 +164,6 @@ class HistoryActivity : ThemedAppCompatActivity() {
                     cal.get(Calendar.MONTH),
                     cal.get(Calendar.DAY_OF_MONTH)
                 ).show()
-                // We need to notify the adapter that the item didn't actually vanish yet if they cancel the picker
-                // but actually the swipe is done. It's better to refresh list.
                 adapter.notifyItemChanged(fullList.indexOf(h))
             }
             "Used" -> {
@@ -320,30 +334,35 @@ class HistoryActivity : ThemedAppCompatActivity() {
                         applyFilters()
                     }
                 }
-                // Return true to close the menu, false to keep it open.
-                // The default behavior is to close, which is fine here.
                 true
             }
             popup.show()
         }
     }
 
+    /**
+     * FUNCTIONALITY: Filters and sorts the master history log based on UI state and 
+     * user preferences (Type, Favorites, Search, Sort).
+     * USE OF DATA: Consumes 'fullList' (List<History>). Evaluates search terms against 
+     * multiple String fields.
+     * USE OF CODE STRUCTURES: Chain of functional operators (.filter, .sortedBy) 
+     * with complex 'when' selection for multi-property sorting.
+     */
     private fun applyFilters() {
         var filtered = fullList
 
-        // Type filter
+        // CODE STRUCTURE: Iterative filtering structure for type selection
         filtered = filtered.filter { h ->
             ((h.action == "Expired") && showExpired) ||
                     ((h.action == "Used") && showConsumed) ||
                     ((h.action == "Deleted") && showDeleted)
         }
 
-        // Favourites filter
         if (onlyFavourites) {
             filtered = filtered.filter { it.isFavorite }
         }
 
-        // Search filter
+        // CODE STRUCTURE: Search logic evaluating every textual field of the History object
         if (searchQuery.isNotBlank()) {
             val qLower = searchQuery.lowercase(Locale.getDefault())
             filtered = filtered.filter { h ->
@@ -359,7 +378,7 @@ class HistoryActivity : ThemedAppCompatActivity() {
             }
         }
 
-        // Sorting
+        // CODE STRUCTURE: Exhaustive selection structure mapping sortIndex to comparative algorithms
         filtered = when (sortIndex) {
             0 -> filtered.sortedByDescending { it.timestamp } // Newest first
             1 -> filtered.sortedBy { it.timestamp } // Oldest first
@@ -379,6 +398,12 @@ class HistoryActivity : ThemedAppCompatActivity() {
         updateUI(filtered)
     }
 
+    /**
+     * FUNCTIONALITY: Synchronizes the UI layout visibility and summary text based on filtered list content.
+     * USE OF DATA: Evaluates 'List<History>' size and calculates total counts per action type.
+     * USE OF CODE STRUCTURES: Sequential 'if/else' selection for UI states and 
+     * nested 'when' selection for specific empty-state messaging.
+     */
     private fun updateUI(list: List<History>) {
         adapter.updateData(list)
 
@@ -386,13 +411,12 @@ class HistoryActivity : ThemedAppCompatActivity() {
         val isQueryNotEmpty = searchQuery.isNotEmpty()
         val hasResults = list.isNotEmpty()
 
-        // Hide pills and sort bar if search is active (even if query is empty)
         binding.countersLayout.visibility = if (isSearchVisible) View.GONE else View.VISIBLE
         binding.layoutSortHistoryInclude.root.visibility = if (isSearchVisible) View.GONE else View.VISIBLE
 
         val emptyState = binding.emptyStateLayoutHistory
         
-        // Priority 1: Base state (No history at all)
+        // CODE STRUCTURE: Priority selection for UI state determination
         if (fullList.isEmpty()) {
             binding.recyclerHistory.visibility = View.GONE
             emptyState.root.visibility = View.VISIBLE
@@ -409,6 +433,7 @@ class HistoryActivity : ThemedAppCompatActivity() {
             binding.recyclerHistory.visibility = View.GONE
             emptyState.root.visibility = View.VISIBLE
 
+            // CODE STRUCTURE: Selection structure for contextual empty result messages
             when {
                 isQueryNotEmpty -> {
                     emptyState.emptyStateIcon.setImageResource(R.drawable.ic_search_unfilled)
@@ -421,7 +446,6 @@ class HistoryActivity : ThemedAppCompatActivity() {
                     emptyState.emptyStateSubtitle.text = getString(R.string.empty_state_subtitle_no_favorites)
                 }
                 else -> {
-                    // This handles cases where items are filtered out by type but search is empty
                     emptyState.emptyStateIcon.setImageResource(R.drawable.ic_search_unfilled)
                     emptyState.emptyStateTitle.text = getString(R.string.empty_state_title_no_results)
                     emptyState.emptyStateSubtitle.text = getString(R.string.empty_state_subtitle_no_matches)
@@ -429,6 +453,7 @@ class HistoryActivity : ThemedAppCompatActivity() {
             }
         }
 
+        // CODE STRUCTURE: Summary data aggregation for non-search views
         if (!isSearchVisible) {
             val expiredCount = fullList.count { it.action == "Expired" }
             val usedCount = fullList.count { it.action == "Used" }
@@ -440,7 +465,6 @@ class HistoryActivity : ThemedAppCompatActivity() {
         }
     }
 
-    // ---------- Helpers ----------
     private fun formatDate(millis: Long): String {
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         return sdf.format(Date(millis))

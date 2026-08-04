@@ -10,6 +10,14 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 
+/**
+ * FUNCTIONALITY: Implements swipe-to-action behaviors for RecyclerView items, 
+ * providing visual feedback (colors/icons) and triggering callbacks for left and right swipes.
+ * USE OF DATA: Manages 'String' labels, 'Int' color and resource IDs, and 'onSwipe' lambda callbacks. 
+ * Reads item dimensions (Float) to perform custom Canvas drawing.
+ * USE OF CODE STRUCTURES: Extends 'ItemTouchHelper.SimpleCallback', overrides 'onSwiped' 
+ * and 'onChildDraw', and uses 'if/else' selection for directional gesture handling.
+ */
 class SwipeActionCallback(
     private val context: Context,
     private val leftLabel: String,
@@ -40,7 +48,13 @@ class SwipeActionCallback(
         target: RecyclerView.ViewHolder
     ): Boolean = false
 
+    /**
+     * FUNCTIONALITY: Callback triggered when a swipe gesture is completed in either direction.
+     * USE OF DATA: Accepts 'direction' (Int) and 'viewHolder'. Triggers lambda with adapter position (Int).
+     * USE OF CODE STRUCTURES: Selection structure (if/else) to branch logic based on swipe direction.
+     */
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+        // CODE STRUCTURE: Branching between two different user actions (e.g., Mark Used vs Edit)
         if (direction == ItemTouchHelper.LEFT) {
             onSwipeLeft(viewHolder.bindingAdapterPosition)
         } else {
@@ -48,6 +62,13 @@ class SwipeActionCallback(
         }
     }
 
+    /**
+     * FUNCTIONALITY: Manually draws the background color, icon, and text label 
+     * behind the swiped item.
+     * USE OF DATA: Consumes 'Canvas' for drawing and 'dX' (Float) for current swipe offset.
+     * USE OF CODE STRUCTURES: Selection structure (if/else) evaluating 'dX' sign 
+     * to determine which side of the item to draw.
+     */
     override fun onChildDraw(
         c: Canvas,
         recyclerView: RecyclerView,
@@ -60,10 +81,11 @@ class SwipeActionCallback(
         val itemView = viewHolder.itemView
         val itemHeight = itemView.bottom - itemView.top
         
-        // Target icon size (e.g. 24dp)
+        // DATA: Calculation of icon size based on device density metrics
         val density = context.resources.displayMetrics.density
         val iconSize = (24 * density).toInt()
 
+        // CODE STRUCTURE: Selection structure for rendering swiping-left visual feedback
         if (dX < 0) { // Swiping Left
             paint.color = rightColor
             val background = RectF(
@@ -75,6 +97,7 @@ class SwipeActionCallback(
             c.drawRect(background, paint)
 
             rightIcon?.let {
+                // DATA: Geometric calculations for centering icons within the swiped row
                 val iconMargin = (itemHeight - (iconSize + 40)) / 2
                 val iconTop = itemView.top + iconMargin
                 val iconBottom = iconTop + iconSize
@@ -88,6 +111,7 @@ class SwipeActionCallback(
             }
 
         } else if (dX > 0) { // Swiping Right
+            // CODE STRUCTURE: Selection structure for rendering swiping-right visual feedback
             paint.color = leftColor
             val background = RectF(
                 itemView.left.toFloat(),

@@ -3,18 +3,31 @@ package com.expiryx.app
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/**
+ * FUNCTIONALITY: Defines database schema version migration paths for Room SQLite, 
+ * ensuring data persistence during application updates.
+ * USE OF DATA: Executes raw SQL DDL and DML commands to modify table structures, 
+ * rename columns, and migrate existing records between versions.
+ * USE OF CODE STRUCTURES: Implements multiple 'Migration' anonymous classes; uses 
+ * 'try/catch' for cursor management and 'if' selection logic to safely check column existence.
+ */
 object Migrations {
 
     /**
-     * Helper function to robustly check if a column exists in a table.
-     * This prevents crashes if a migration tries to add a column that already exists.
+     * FUNCTIONALITY: Robustly verifies the existence of a specific column within a table 
+     * to prevent redundant 'ALTER TABLE' crashes.
+     * USE OF DATA: Queries the SQLite 'PRAGMA table_info' meta-data. Returns 'Boolean'.
+     * USE OF CODE STRUCTURES: Iterative 'while' loop through database cursor results 
+     * with string-comparison selection logic.
      */
     private fun columnExists(db: SupportSQLiteDatabase, tableName: String, columnName: String): Boolean {
         try {
+            // CODE STRUCTURE: Querying database metadata using PRAGMA structural commands
             db.query("PRAGMA table_info($tableName)", emptyArray<Any?>())?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex("name")
                 if (nameIndex >= 0) {
                     while (cursor.moveToNext()) {
+                        // CODE STRUCTURE: String selection check to find matching column name
                         if (columnName.equals(cursor.getString(nameIndex), ignoreCase = true)) {
                             return true
                         }
@@ -27,8 +40,15 @@ object Migrations {
         return false
     }
 
+    /**
+     * FUNCTIONALITY: Migrates from v1 to v2 by adding barcode and audit timestamp columns.
+     * USE OF DATA: Appends 'TEXT' and 'INTEGER' columns to 'product_table'.
+     * USE OF CODE STRUCTURES: Sequential SQL 'ALTER TABLE' execution within an anonymous 
+     * Migration class override.
+     */
     val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
+            // CODE STRUCTURE: Guarded SQL execution to ensure idempotent structural changes
             if (!columnExists(database, "product_table", "barcode")) {
                 database.execSQL("ALTER TABLE product_table ADD COLUMN barcode TEXT")
             }
@@ -41,9 +61,17 @@ object Migrations {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Migrates from v2 to v3, performing a complex data-type change 
+     * (String to Integer) for product weights.
+     * USE OF DATA: Transfers data between old and new tables using SQL 'CAST' and 'CASE' logic.
+     * USE OF CODE STRUCTURES: Complex sequence of SQL DDL (Create/Drop/Rename) and 
+     * DML (Insert/Select) commands to restructure the database safely.
+     */
     val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(database: SupportSQLiteDatabase) {
             // PRODUCT TABLE: Change weight from TEXT to INTEGER
+            // CODE STRUCTURE: Full table recreation strategy for changing primary column data types
             database.execSQL("""
                 CREATE TABLE product_table_new (
                     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -60,6 +88,7 @@ object Migrations {
                     dateModified INTEGER
                 )
             """)
+            // DATA TRANSFORMATION: SQL selection with CASE structure to handle data conversion
             database.execSQL("""
                 INSERT INTO product_table_new (id, name, quantity, expirationDate, brand, weight, imageUri, reminderDays, isFavorite, barcode, dateAdded, dateModified)
                 SELECT id, name, quantity, expirationDate, brand, 

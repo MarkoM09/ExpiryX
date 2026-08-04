@@ -24,10 +24,24 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
+/**
+ * FUNCTIONALITY: Provides a bottom sheet interface for users to choose how they want 
+ * to add a product (Manual, Camera Scan, or Image Upload).
+ * USE OF DATA: Manages 'Uri' objects for uploaded images and interacts with ML Kit 
+ * for barcode detection. Returns results via starting new Activities.
+ * USE OF CODE STRUCTURES: Inherits from 'ThemedBottomSheetDialogFragment', 
+ * implements an Image Picker callback, and uses coroutines for network-bound data fetching.
+ */
 class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
 
     private var progressBar: ProgressBar? = null
 
+    /**
+     * FUNCTIONALITY: Callback listener that triggers when a user selects an image from the device.
+     * USE OF DATA: Ingests a nullable 'Uri' representing the picked file.
+     * USE OF CODE STRUCTURES: Uses 'try/catch' to handle permission acquisition 
+     * and calls 'analyseImageForBarcode' if the URI is valid.
+     */
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -36,6 +50,7 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
             return@registerForActivityResult
         }
         try {
+            // CODE STRUCTURE: Attempting to persist read permission for the selected image
             requireContext().contentResolver.takePersistableUriPermission(
                 uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
@@ -52,6 +67,7 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
         val btnClose: View = view.findViewById(R.id.btnCloseSheet)
         progressBar = view.findViewById(R.id.progressBarUpload)
 
+        // USE OF CODE STRUCTURES: Lambda listeners to navigate to different input modes
         optionManual.setOnClickListener {
             startActivity(Intent(requireContext(), ManualEntryActivity::class.java).apply {
                 putExtra("isEdit", false)
@@ -73,16 +89,27 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         WindowInsetsHelper.setupBottomSheetEdgeToEdge(this, view.findViewById(R.id.addProductBottomRoot))
+        // CODE STRUCTURE: Auto-processing if an image was passed in during instantiation
         arguments?.getParcelable<Uri>(ARG_INITIAL_IMAGE_URI)?.let { uri ->
             analyseImageForBarcode(uri)
         }
     }
 
+    /**
+     * FUNCTIONALITY: Toggles the visibility of the loading indicator and locks the UI.
+     * USE OF DATA: Updates 'progressBar' visibility and 'isCancelable' (Boolean).
+     */
     private fun showLoading(show: Boolean) {
         progressBar?.isVisible = show
         isCancelable = !show
     }
 
+    /**
+     * FUNCTIONALITY: Processes a static image file to find EAN or UPC barcodes using ML Kit.
+     * USE OF DATA: Ingests an image 'Uri' and converts it to an 'InputImage'.
+     * USE OF CODE STRUCTURES: Configures 'BarcodeScannerOptions' and uses async 
+     * success/failure listeners for result handling.
+     */
     private fun analyseImageForBarcode(uri: Uri) {
         showLoading(true)
         try {
@@ -96,9 +123,11 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
                 ).build()
             val scanner = BarcodeScanning.getClient(options)
 
+            // CODE STRUCTURE: Async processing of image data via ML Kit library
             scanner.process(image)
                 .addOnSuccessListener { barcodes ->
                     val code = barcodes.firstOrNull()?.rawValue
+                    // CODE STRUCTURE: Selection path depending on whether a code was detected
                     if (!code.isNullOrBlank()) fetchProductInfo(code, uri)
                     else {
                         showLoading(false)
@@ -118,6 +147,12 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Retrieves product metadata from an external API after a successful scan.
+     * USE OF DATA: Ingests 'barcode' (String) and 'uploadedImage' (Uri). Returns a 'Product' object.
+     * USE OF CODE STRUCTURES: Launches a coroutine in 'lifecycleScope' using 
+     * 'withContext(Dispatchers.IO)' for networking and switches to Main for UI updates.
+     */
     private fun fetchProductInfo(barcode: String, uploadedImage: Uri) {
         val client = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
@@ -128,6 +163,7 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
             .url("https://world.openfoodfacts.org/api/v2/product/$barcode.json")
             .build()
 
+        // USE OF CODE STRUCTURES: Coroutine block to handle API communication asynchronously
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val body = withContext(Dispatchers.IO) {
@@ -143,6 +179,7 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
                 }
 
                 val json = JSONObject(body)
+                // CODE STRUCTURE: Branching logic based on API success status
                 if (json.optInt("status") == 1) {
                     val prod = json.getJSONObject("product")
                     val name = prod.optString("product_name", "").trim()
@@ -193,6 +230,10 @@ class AddProductBottomSheet : ThemedBottomSheetDialogFragment() {
     companion object {
         private const val ARG_INITIAL_IMAGE_URI = "initial_image_uri"
 
+        /**
+         * FUNCTIONALITY: Static creator for the bottom sheet with optional initial data.
+         * USE OF DATA: Accepts an optional 'initialImageUri'.
+         */
         fun newInstance(initialImageUri: Uri? = null): AddProductBottomSheet {
             val fragment = AddProductBottomSheet()
             initialImageUri?.let {

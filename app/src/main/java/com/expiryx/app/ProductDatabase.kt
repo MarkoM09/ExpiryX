@@ -5,6 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+/**
+ * FUNCTIONALITY: Acts as the main access point to the Room database, maintaining a 
+ * singleton instance for the entire application.
+ * USE OF DATA: Manages 'Product', 'History', and 'NotificationLog' entities. Provides 
+ * access to their respective DAOs.
+ * USE OF CODE STRUCTURES: Implements the 'Singleton' pattern using a companion object 
+ * with '@Volatile' and thread-safe 'synchronized' blocks to prevent multiple instances.
+ */
 @Database(entities = [Product::class, History::class, NotificationLog::class], version = 9, exportSchema = false)
 abstract class ProductDatabase : RoomDatabase() {
 
@@ -16,6 +24,13 @@ abstract class ProductDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: ProductDatabase? = null
 
+        /**
+         * FUNCTIONALITY: Returns the singleton instance of ProductDatabase, initializing 
+         * it if it doesn't exist.
+         * USE OF DATA: Accepts a 'Context' to build the database, returns 'ProductDatabase'.
+         * USE OF CODE STRUCTURES: Uses double-checked locking with 'synchronized(this)' 
+         * to ensure thread safety during database creation.
+         */
         fun getDatabase(context: Context): ProductDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(

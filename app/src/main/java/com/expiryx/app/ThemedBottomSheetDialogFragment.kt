@@ -6,26 +6,38 @@ import androidx.appcompat.view.ContextThemeWrapper
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 /**
- * Base BottomSheet that dynamically applies the user's selected accent theme
- * while maintaining the correct "overlay" behavior (smooth slide-up + dim background).
+ * FUNCTIONALITY: Base bottom sheet dialog class that dynamically applies the application's 
+ * active accent theme to all layouts inflated within the dialog.
+ * USE OF DATA: Binds dialog theme resource Int identifiers and wraps 'Context' with 'accentTheme' (Int).
+ * USE OF CODE STRUCTURES: Extends 'BottomSheetDialogFragment', overrides 'getTheme' for 
+ * overlay styling, and uses 'ContextThemeWrapper' to inject custom styles into the 
+ * layout inflation process.
  */
 abstract class ThemedBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
+    /**
+     * FUNCTIONALITY: Returns the primary overlay theme for the bottom sheet.
+     * USE OF DATA: Returns a hardcoded Style resource 'Int'.
+     */
     override fun getTheme(): Int {
-        // Use our specialized BottomSheet overlay theme.
-        // This ensures the window is translucent and has a dim backdrop.
+        // DATA: specialized BottomSheet overlay theme resource
         return R.style.ThemeOverlay_ExpiryX_BottomSheetDialog
     }
 
+    /**
+     * FUNCTIONALITY: Intercepts layout inflation to apply the current accent theme to 
+     * all views within the sheet.
+     * USE OF DATA: Reads 'accentTheme' (Int) from 'ThemeManager' and returns a 'themed' LayoutInflater.
+     * USE OF CODE STRUCTURES: Uses 'cloneInContext' to propagate the 'ContextThemeWrapper' 
+     * down the view hierarchy.
+     */
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val inflater = super.onGetLayoutInflater(savedInstanceState)
         
-        // Fetch the user's current accent theme (Aqua, Coral, etc.)
+        // DATA: Retrieve the specific accent color resource currently chosen by the user
         val accentTheme = ThemeManager.getAccentThemeRes(requireContext())
         
-        // Wrap the context with the accent theme. 
-        // This ensures that layouts inflated inside the sheet correctly resolve 
-        // ?attr/colorPrimary and other accent-dependent colors.
+        // CODE STRUCTURE: Context wrapping ensures that UI elements resolve accent colors correctly
         val themedContext = ContextThemeWrapper(requireContext(), accentTheme)
 
         return inflater.cloneInContext(themedContext)

@@ -15,6 +15,14 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
 
+/**
+ * FUNCTIONALITY: Handles user authentication, credential validation, and OAuth Google 
+ * Sign-In triggers to provide access to cloud-synced features.
+ * USE OF DATA: Processes 'GoogleSignInAccount' tokens (Strings) and Firebase result Booleans. 
+ * Manages 'isForcedLogin' (Boolean) state from intent extras.
+ * USE OF CODE STRUCTURES: Implements 'ActivityResultLauncher' for the Google picker callback, 
+ * 'if/else' selection for navigation routing, and Firebase success/failure listeners.
+ */
 class LoginActivity : ThemedAppCompatActivity() {
 
     private var googleSignInClient: GoogleSignInClient? = null
@@ -30,10 +38,18 @@ class LoginActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Callback listener for the Google Sign-In result, extracting tokens 
+     * for Firebase authentication.
+     * USE OF DATA: Ingests 'ActivityResult', extracts 'idToken' (String).
+     * USE OF CODE STRUCTURES: Uses 'try/catch' to handle API exceptions and 
+     * 'if' selection for token validation checks.
+     */
     private val signInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
+                // CODE STRUCTURE: Attempting to retrieve the Google account and its unique ID token
                 val account = task.getResult(ApiException::class.java)
                 val idToken = account?.idToken
                 if (idToken.isNullOrBlank()) {
@@ -72,6 +88,7 @@ class LoginActivity : ThemedAppCompatActivity() {
         googleSignInClient = gso?.let { GoogleSignIn.getClient(this, it) }
 
         // 2. Navigation logic: Only skip if NOT a forced login
+        // CODE STRUCTURE: Branching selection to determine if the user can skip the login screen
         if (!isForcedLogin) {
             if (AccountManager.isLoggedIn()) {
                 navigateToMain()
@@ -121,16 +138,27 @@ class LoginActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Updates the UI loading state.
+     * USE OF DATA: Accepts 'loading' (Boolean).
+     */
     private fun setLoading(loading: Boolean) {
         progressBar?.visibility = if (loading) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.buttonGoogleSignIn)?.isEnabled = !loading
         findViewById<Button>(R.id.buttonContinue)?.isEnabled = !loading
     }
 
+    /**
+     * FUNCTIONALITY: Finalizes authentication by exchanging a Google ID token for a Firebase session.
+     * USE OF DATA: Consumes 'idToken' (String).
+     * USE OF CODE STRUCTURES: Implements an 'addOnCompleteListener' callback 
+     * with branching 'isSuccessful' logic to finalize the login flow.
+     */
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth?.signInWithCredential(credential)
             ?.addOnCompleteListener(this) { task ->
+                // CODE STRUCTURE: Branching selection based on the result of the Firebase transaction
                 if (task.isSuccessful) {
                     AccountManager.setWelcomeScreenPassed(this, true)
                     AccountManager.startSync(this)
@@ -143,8 +171,13 @@ class LoginActivity : ThemedAppCompatActivity() {
             }
     }
 
+    /**
+     * FUNCTIONALITY: Navigates the user to the application's dashboard.
+     * USE OF DATA: Configures 'Intent' with task-clearing flags.
+     */
     private fun navigateToMain() {
         val intent = Intent(this, MainActivity::class.java)
+        // DATA: Task flags ensure the login stack is removed so 'Back' button doesn't return here
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         startActivity(intent)
         finish()

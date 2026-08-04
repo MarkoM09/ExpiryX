@@ -11,8 +11,23 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.card.MaterialCardView
 
+/**
+ * FUNCTIONALITY: Provides utility methods to display and manage the accent theme selection UI, 
+ * allowing users to customize the application's primary color.
+ * USE OF DATA: Interacts with 'ThemeManager.AccentOption' objects, Integer color resources, 
+ * and persistent theme identifiers (Strings/Ints).
+ * USE OF CODE STRUCTURES: Utilizes an 'object' singleton, iterative layout inflation, 
+ * and 'if/else' selection for visual state management.
+ */
 object AccentThemePicker {
 
+    /**
+     * FUNCTIONALITY: Displays a BottomSheetDialog containing accent color options for selection.
+     * USE OF DATA: Processes 'ThemeManager.accentOptions' and 'currentAccent' (String). 
+     * Takes an 'onAccentSelected' callback lambda.
+     * USE OF CODE STRUCTURES: Uses 'forEachIndexed' for layout distribution and 'setOnClickListener' 
+     * with selection logic to commit theme changes.
+     */
     fun show(context: Context, onAccentSelected: () -> Unit) {
         val accentTheme = ThemeManager.getAccentThemeRes(context)
         val themedContext = androidx.appcompat.view.ContextThemeWrapper(context, accentTheme)
@@ -25,11 +40,15 @@ object AccentThemePicker {
         val rowBottom = content.findViewById<LinearLayout>(R.id.accentPickerRowBottom)
         val currentAccent = ThemeManager.getAccentTheme(context)
 
+        // CODE STRUCTURE: Iteration structure to dynamically populate selection rows
         ThemeManager.accentOptions.forEachIndexed { index, option ->
+            // CODE STRUCTURE: Selection logic to distribute items between top and bottom rows
             val row = if (index < 3) rowTop else rowBottom
             val itemView = LayoutInflater.from(context).inflate(R.layout.item_accent_option, row, false)
             bindOption(context, itemView, option, option.id == currentAccent)
+            
             itemView.setOnClickListener {
+                // CODE STRUCTURE: Guard clause to avoid redundant theme applications
                 if (option.id != ThemeManager.getAccentTheme(context)) {
                     ThemeManager.setAccentTheme(context, option.id)
                     onAccentSelected()
@@ -42,6 +61,12 @@ object AccentThemePicker {
         dialog.show()
     }
 
+    /**
+     * FUNCTIONALITY: Populates a LinearLayout with small circular color swatches for inline UI usage.
+     * USE OF DATA: Reads density metrics (Float) to calculate pixel dimensions (Int) for swatches.
+     * USE OF CODE STRUCTURES: Iterative layout building with 'setOnClickListener' triggers 
+     * for immediate theme updates.
+     */
     fun bindInlineSwatch(
         context: Context,
         container: LinearLayout,
@@ -49,6 +74,7 @@ object AccentThemePicker {
     ) {
         container.removeAllViews()
         val currentAccent = ThemeManager.getAccentTheme(context)
+        // DATA: Calculation of UI dimensions based on screen density
         val size = (36 * context.resources.displayMetrics.density).toInt()
         val margin = (6 * context.resources.displayMetrics.density).toInt()
 
@@ -67,6 +93,7 @@ object AccentThemePicker {
                 background = circleDrawable(context, option.previewColorRes)
                 contentDescription = option.label
             }
+            // CODE STRUCTURE: Selection structure for applying visual feedback to the active accent
             if (selected) {
                 wrapper.foreground = ContextCompat.getDrawable(context, R.drawable.accent_swatch_selected_ring)
             }
@@ -105,6 +132,11 @@ object AccentThemePicker {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Creates a circular background drawable with a specific color.
+     * USE OF DATA: Consumes 'colorRes' (Int).
+     * USE OF CODE STRUCTURES: Uses the 'apply' scope function for object configuration.
+     */
     private fun circleDrawable(context: Context, colorRes: Int): GradientDrawable {
         return GradientDrawable().apply {
             shape = GradientDrawable.OVAL

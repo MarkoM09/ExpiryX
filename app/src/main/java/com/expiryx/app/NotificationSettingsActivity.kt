@@ -24,6 +24,14 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * FUNCTIONALITY: Provides a granular interface for configuring notification behaviors, 
+ * including reminder intervals, daily alert times, and global snooze settings.
+ * USE OF DATA: Manages 'Set<String>' for alert intervals, 'Int' for hours/minutes, 
+ * and 'Long' for snooze timestamps. Persists these to 'Prefs' (SharedPreferences).
+ * USE OF CODE STRUCTURES: Extends 'ThemedAppCompatActivity'; uses 'TimePickerDialog' 
+ * and custom 'NumberPicker' dialogs with selection logic to update application state.
+ */
 class NotificationSettingsActivity : ThemedAppCompatActivity() {
 
     private lateinit var binding: ActivityNotificationSettingsBinding
@@ -59,11 +67,18 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         binding.cardSnooze.setOnClickListener { showSnoozeWheelPicker() }
     }
 
+    /**
+     * FUNCTIONALITY: Updates the UI components to reflect the current notification preferences 
+     * stored in the persistent database.
+     * USE OF DATA: Reads from 'Prefs' and formats data for display (e.g., localized time strings).
+     * USE OF CODE STRUCTURES: 'if/else' selection for snooze status display and alpha 
+     * blending selection based on master switch state.
+     */
     private fun refreshUI() {
         val enabled = Prefs.isNotificationsEnabled(this)
         binding.switchNotifications.isChecked = enabled
 
-        // Intervals summary
+        // Intervals summary: CODE STRUCTURE: Iterative mapping to format selected intervals into a String
         val selectedIntervals = Prefs.getReminderIntervals(this).toList()
             .map { it.toIntOrNull() ?: 0 }
             .sorted()
@@ -72,6 +87,7 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
             "On the day"
         } else {
             selectedIntervals.map { value ->
+                // CODE STRUCTURE: Branching selection to pick localized label for numeric offset
                 when (value) {
                     0 -> "On the day"
                     1 -> "1 day before"
@@ -91,7 +107,7 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
         binding.txtSelectedTime.text = timeFormat.format(calendar.time)
 
-        // Snooze status
+        // Snooze status: CODE STRUCTURE: Selection structure determining visibility of active snooze
         if (Prefs.isSnoozeActive(this)) {
             val end = Prefs.getSnoozeEndTimestamp(this)
             binding.txtSnoozeStatus.text = "Active until ${dateFormat.format(Date(end))}"
@@ -108,6 +124,12 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         binding.cardTime.isEnabled = enabled
     }
 
+    /**
+     * FUNCTIONALITY: Displays a selection dialog for managing the list of active reminder intervals.
+     * USE OF DATA: Consumes 'Set<String>' of intervals.
+     * USE OF CODE STRUCTURES: Uses a custom RecyclerView 'IntervalsAdapter' to handle 
+     * multiple selection logic and deletions.
+     */
     private fun showIntervalsDialog() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_intervals_list, null)
         val recycler = dialogView.findViewById<RecyclerView>(R.id.recyclerIntervals)
@@ -140,6 +162,11 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         dialog.show()
     }
 
+    /**
+     * FUNCTIONALITY: Opens a dual-input (Wheel or Keyboard) picker for adding custom reminder days.
+     * USE OF DATA: Ingests an 'Int' value and adds it to the persistent intervals set.
+     * USE OF CODE STRUCTURES: Toggle selection logic between 'NumberPicker' and 'EditText'.
+     */
     private fun showCustomIntervalWheel() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_number_picker, null)
         val picker = dialogView.findViewById<NumberPicker>(R.id.numberPicker)
@@ -156,6 +183,7 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         editNumber.setText("5")
 
         btnToggle.setOnClickListener {
+            // CODE STRUCTURE: Toggle visibility selection for input mode switching
             val isWheel = picker.isVisible
             picker.isVisible = !isWheel
             editNumber.isVisible = isWheel
@@ -165,6 +193,7 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setView(dialogView)
             .setPositiveButton("Add") { _, _ ->
+                // CODE STRUCTURE: Routing logic to read from the visible input component
                 val newVal = if (picker.isVisible) picker.value.toString() else editNumber.text.toString()
                 if (newVal.isNotBlank()) {
                     val current = Prefs.getReminderIntervals(this).toMutableSet()
@@ -179,6 +208,10 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
             .show()
     }
 
+    /**
+     * FUNCTIONALITY: Displays the system TimePickerDialog for setting the daily reminder check time.
+     * USE OF DATA: Consumes and produces 'Int' hour and minute values.
+     */
     private fun showClockTimePicker() {
         val currentHour = Prefs.getDefaultHour(this)
         val currentMinute = Prefs.getDefaultMinute(this)
@@ -190,6 +223,12 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         }, currentHour, currentMinute, false).show()
     }
 
+    /**
+     * FUNCTIONALITY: Configures a temporary snooze to suppress all notifications for a set duration.
+     * USE OF DATA: Converts user-selected 'Int' days into a future 'Long' timestamp.
+     * USE OF CODE STRUCTURES: Iterative UI traversal to find internal components of 'NumberPicker' 
+     * for manual text injection.
+     */
     private fun showSnoozeWheelPicker() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_number_picker, null)
         val picker = dialogView.findViewById<NumberPicker>(R.id.numberPicker)
@@ -214,12 +253,11 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         picker.value = currentSnoozeDays
         editNumber.setText(currentSnoozeDays.toString())
         
-        // Final attempt to force NumberPicker to show the initial formatted value
-        // We find the EditText inside the NumberPicker and set its text manually
+        // CODE STRUCTURE: Iterative loop to customize internal NumberPicker rendering
         for (i in 0 until picker.childCount) {
             val child = picker.getChildAt(i)
             if (child is EditText) {
-                child.filters = arrayOfNulls(0) // Remove filters to allow manual text update
+                child.filters = arrayOfNulls(0)
                 child.setText(if (currentSnoozeDays == 0) "Clear (Off)" else "$currentSnoozeDays Days")
                 break
             }
@@ -254,8 +292,14 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
         BottomNavHelper.setup(this, binding.bottomNav.bottomNavigationView, R.id.nav_settings)
     }
 
+    /**
+     * FUNCTIONALITY: Batch-updates all system alarms to match the user's latest preferences.
+     * USE OF CODE STRUCTURES: Launches a coroutine on 'Dispatchers.IO' to query the 
+     * database and uses 'NotificationScheduler' for the processing logic.
+     */
     private fun rescheduleAllNotifications() {
         val repo = (application as ProductApplication).repository
+        // CODE STRUCTURE: Coroutine block for background alarm registration
         lifecycleScope.launch(Dispatchers.IO) {
             val products = repo.getAllProductsNow()
             NotificationScheduler.rescheduleAll(this@NotificationSettingsActivity, products)
@@ -295,6 +339,7 @@ class NotificationSettingsActivity : ThemedAppCompatActivity() {
             holder.check.setOnCheckedChangeListener(null)
             holder.check.isChecked = selected.contains(valStr) || value == 0
             
+            // CODE STRUCTURE: Selection structure enforcing "Always On" logic for the 0-day interval
             if (value == 0) {
                 holder.check.isEnabled = false
                 holder.check.alpha = 0.3f

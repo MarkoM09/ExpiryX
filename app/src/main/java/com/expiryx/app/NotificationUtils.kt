@@ -20,11 +20,25 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * FUNCTIONALITY: Provides utility methods for creating and displaying high-priority 
+ * Android notifications, including channel management and image loading.
+ * USE OF DATA: Processes 'title' and 'message' (Strings), 'productId' (Int), and 
+ * 'imageUri' (String). Utilizes 'NotificationCompat.Builder' to construct UI alerts.
+ * USE OF CODE STRUCTURES: Employs 'Glide' callbacks for asynchronous image loading 
+ * and 'if/else' selection for SDK version-specific channel creation.
+ */
 object NotificationUtils {
     private const val CHANNEL_ID = "expiry_notifications"
     private const val CHANNEL_NAME = "Expiry Reminders"
     private const val CHANNEL_DESC = "Notifications about product expirations"
 
+    /**
+     * FUNCTIONALITY: Configures and displays a rich notification to the user.
+     * USE OF DATA: Ingests alert content and an optional 'imageUri' for a thumbnail.
+     * USE OF CODE STRUCTURES: Uses a builder pattern for notification assembly and 
+     * an 'if' selection to conditionally load images via Glide's 'CustomTarget' callback.
+     */
     fun showExpiryNotification(
         context: Context,
         title: String,
@@ -34,7 +48,7 @@ object NotificationUtils {
     ) {
         createChannel(context)
 
-        // Open app when tapped and trigger detail view
+        // CODE STRUCTURE: Intent configuration to define the navigation path when the notification is tapped
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("show_product_id", productId)
@@ -55,19 +69,20 @@ object NotificationUtils {
             .setAutoCancel(true)
             .setContentIntent(tapPendingIntent)
 
-        // If image available, load as Large Icon
+        // USE OF CODE STRUCTURES: Conditional logic to handle image loading asynchronously
         if (!imageUri.isNullOrBlank()) {
             Glide.with(context)
                 .asBitmap()
                 .load(Uri.parse(imageUri))
                 .into(object : CustomTarget<Bitmap>() {
+                    // CODE STRUCTURE: Callback triggered when image is successfully fetched
                     override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                         builder.setLargeIcon(resource)
                         sendNotification(context, builder.build(), productId, title, message)
                     }
                     override fun onLoadCleared(placeholder: Drawable?) {}
                     override fun onLoadFailed(errorDrawable: Drawable?) {
-                        // If load fails, send without large icon
+                        // CODE STRUCTURE: Fallback logic ensures notification is sent even if image fails
                         sendNotification(context, builder.build(), productId, title, message)
                     }
                 })
@@ -79,9 +94,16 @@ object NotificationUtils {
         logNotification(context, title, message)
     }
 
+    /**
+     * FUNCTIONALITY: Persists a record of the sent notification into the local database log.
+     * USE OF DATA: Maps 'title' and 'message' to a 'NotificationLog' entity.
+     * USE OF CODE STRUCTURES: Uses 'if' selection to determine 'urgency' level based on 
+     * message keywords and launches a coroutine for DB insertion.
+     */
     private fun logNotification(context: Context, title: String, message: String) {
         val app = context.applicationContext as ProductApplication
         val db = app.database
+        // CODE STRUCTURE: Selection structure for prioritizing logs based on content
         val urgency = if (message.contains("today", ignoreCase = true) || message.contains("expired", ignoreCase = true)) 1 else 0
         
         CoroutineScope(Dispatchers.IO).launch {
@@ -89,7 +111,14 @@ object NotificationUtils {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Delivers the finalized notification object to the Android System.
+     * USE OF DATA: Generates a stable 'notifyId' (Int) from string hashes.
+     * USE OF CODE STRUCTURES: Uses 'try/catch' for handling potential 'SecurityException' 
+     * on Android 13+.
+     */
     private fun sendNotification(context: Context, notification: android.app.Notification, productId: Int, title: String, message: String) {
+        // DATA: Hash calculation for ID ensures unique notifications per product/message
         val stableKey = if (productId > 0) "${productId}_${message}" else "global_${title}_${message}"
         val notifyId = stableKey.hashCode()
 
@@ -102,6 +131,11 @@ object NotificationUtils {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Creates the notification channel required for Android O and above.
+     * USE OF DATA: Defines 'CHANNEL_ID', 'NAME', and 'IMPORTANCE'.
+     * USE OF CODE STRUCTURES: Selection structure (Build.VERSION) for OS compatibility.
+     */
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(

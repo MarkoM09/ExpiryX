@@ -29,8 +29,20 @@ import java.util.Locale
 import java.util.UUID
 import java.util.regex.Pattern
 
+/**
+ * FUNCTIONALITY: Manages the manual entry and editing of grocery items, including 
+ * input validation, image selection, and date picking.
+ * USE OF DATA: Processes 'Product' objects for editing. Handles Strings (names, brands), 
+ * Ints (quantity, weight), and Longs (expiry timestamps). Uses View Binding for UI interaction.
+ * USE OF CODE STRUCTURES: Employs 'enum' for date input modes, 'if/else' sequence 
+ * validation checks, and 'NumberPicker' listeners for reactive date calculation.
+ */
 class ManualEntryActivity : ThemedAppCompatActivity() {
 
+    /**
+     * FUNCTIONALITY: Represents the different ways a user can input an expiration date.
+     * USE OF DATA: Enum constants for WHEEL, CALENDAR, and manual TEXT entry.
+     */
     private enum class DateInputMode { WHEEL, CALENDAR, TEXT }
 
     private val productViewModel: ProductViewModel by viewModels {
@@ -73,6 +85,11 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             }
         }
 
+    /**
+     * FUNCTIONALITY: Orchestrates activity initialization, view setup, and data loading.
+     * USE OF DATA: Inflates 'ActivityManualEntryBinding' and checks intent for existing product data.
+     * USE OF CODE STRUCTURES: Sequential calls to setup methods to modularize UI configuration.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowInsetsHelper.enableEdgeToEdge(this)
@@ -105,23 +122,27 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Dynamically adjusts view margins and padding to prevent UI overlap 
+     * with system bars and the IME (keyboard).
+     * USE OF DATA: Reads 'systemBars' and 'ime' insets from 'WindowInsetsCompat'.
+     * USE OF CODE STRUCTURES: Uses 'maxOf' selection logic to determine the largest 
+     * bottom inset required and applies it to the layout.
+     */
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
             
-            // Use the maximum of system bar bottom or IME bottom to ensure content is visible
+            // CODE STRUCTURE: Selection logic to ensure visibility above navigation bar or keyboard
             val bottomInset = maxOf(systemBars.bottom, imeInsets.bottom)
             
-            // Apply top inset as padding to the AppBarLayout so it draws under the status bar
             binding.appBarManualEntry.setPadding(0, systemBars.top, 0, 0)
             
-            // Adjust save button margin for navigation bar or keyboard
             binding.btnSaveProduct.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = (16 * resources.displayMetrics.density).toInt() + bottomInset
             }
 
-            // Adjust scroll view padding so content isn't hidden by the button or keyboard
             binding.manualEntryScroll.setPadding(0, 0, 0, (80 * resources.displayMetrics.density).toInt() + bottomInset)
 
             insets
@@ -178,6 +199,12 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Initializes the day/month/year NumberPickers with appropriate bounds.
+     * USE OF DATA: Sets min/max values and month labels for the custom date wheel UI.
+     * USE OF CODE STRUCTURES: Attaches 'OnValueChangeListener' to the pickers to 
+     * trigger 'updateDayPickerMax' and 'syncExpiryFromPickers' iteratively as data changes.
+     */
     private fun setupExpiryDateWheel() {
         val wheel = binding.expiryDateWheel
         val pickerDay = wheel.pickerDay
@@ -200,6 +227,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         updateDayPickerMax(pickerDay, pickerMonth.value + 1, pickerYear.value)
         pickerDay.value = today[Calendar.DAY_OF_MONTH].coerceAtMost(pickerDay.maxValue)
 
+        // USE OF CODE STRUCTURES: Callback listener to handle user interactions with the wheel
         val listener = NumberPicker.OnValueChangeListener { _, _, _ ->
             if (isInternalUpdate) return@OnValueChangeListener
             updateDayPickerMax(pickerDay, pickerMonth.value + 1, pickerYear.value)
@@ -237,10 +265,17 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Switches the active UI component for date entry (Wheel, Calendar, or Text).
+     * USE OF DATA: Updates 'dateInputMode' enum and toggles visibility of layout containers.
+     * USE OF CODE STRUCTURES: Selection structure (when) determining icon resources 
+     * and string labels based on the active mode.
+     */
     private fun applyDateInputMode(mode: DateInputMode) {
         dateInputMode = mode
         val wheel = binding.expiryDateWheel
 
+        // CODE STRUCTURE: Toggle visibility of different date input views
         val showWheel = mode == DateInputMode.WHEEL
         wheel.containerWheel.visibility = if (showWheel) View.VISIBLE else View.GONE
         wheel.wheelLabelsRow.visibility = if (showWheel) View.VISIBLE else View.GONE
@@ -271,12 +306,18 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Displays the system DatePickerDialog for calendar-based selection.
+     * USE OF DATA: Extracts Long 'expiryMillis' and converts to Year/Month/Day for the dialog.
+     * USE OF CODE STRUCTURES: Implementation of 'OnDateSetListener' callback to commit the chosen date.
+     */
     private fun showCalendarPicker() {
         val cal = Calendar.getInstance()
         expiryMillis?.let { cal.timeInMillis = it }
         DatePickerDialog(
             this,
             { _, y, m, d ->
+                // USE OF DATA: Constructing a precise timestamp at the end of the day
                 val calendar = Calendar.getInstance().apply {
                     set(y, m, d, 23, 59, 59)
                     set(Calendar.MILLISECOND, 999)
@@ -289,6 +330,12 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         ).show()
     }
 
+    /**
+     * FUNCTIONALITY: Validates and parses a raw string date manually typed by the user.
+     * USE OF DATA: Ingests raw 'String', attempts 'dateFormat.parse()', and updates 'expiryMillis' (Long).
+     * USE OF CODE STRUCTURES: Uses 'try/catch' for error handling during parsing 
+     * and 'if' selection for error visibility toggle.
+     */
     private fun parseTextExpiryDate(raw: String) {
         val wheel = binding.expiryDateWheel
         if (raw.isBlank()) {
@@ -297,12 +344,14 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             return
         }
         try {
+            // CODE STRUCTURE: Attempting to convert string data to numeric timestamp
             val parsed = dateFormat.parse(raw.trim())
             if (parsed != null) {
                 setExpiryFromMillis(parsed.time)
                 wheel.textExpiryDateError.visibility = View.GONE
             }
         } catch (_: ParseException) {
+            // CODE STRUCTURE: Error handling path for malformed date strings
             wheel.textExpiryDateError.text = getString(R.string.expiry_date_invalid)
             wheel.textExpiryDateError.visibility = View.VISIBLE
         }
@@ -332,6 +381,13 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         pickerDay.value = if (previousDay in 1..maxDay) previousDay else maxDay
     }
 
+    /**
+     * FUNCTIONALITY: Reads values from the day/month/year NumberPickers and computes 
+     * the final millisecond timestamp.
+     * USE OF DATA: Consolidates values from 3 Int pickers into a single 'Long'.
+     * USE OF CODE STRUCTURES: Sequential 'Calendar.set' operations to standardize 
+     * the time to the end of the day.
+     */
     private fun syncExpiryFromPickers() {
         val wheel = binding.expiryDateWheel
         val calendar = Calendar.getInstance().apply {
@@ -492,6 +548,14 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         Toast.makeText(this, "All fields cleared", Toast.LENGTH_SHORT).show()
     }
 
+    /**
+     * FUNCTIONALITY: Validates all user input fields and commits a new or modified 
+     * Product to the database.
+     * USE OF DATA: Reads raw String inputs from EditTexts, parses 'Int' quantities/weights, 
+     * and 'Long' timestamps. Instantiates a 'Product' object.
+     * USE OF CODE STRUCTURES: Employs sequential 'if' selection blocks for existence checks, 
+     * range validation (1 to 999), and unreasonable date filtering.
+     */
     private fun saveProduct() {
         // Reset errors
         binding.layoutProductName.error = null
@@ -505,7 +569,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         val name = binding.editTextProductName.text.toString().trim()
         val brand = binding.editTextBrand.text.toString().trim().takeIf { it.isNotBlank() }
 
-        // 2. Check Existence: Is name.isBlank()?
+        // CODE STRUCTURE: Existence check for mandatory product name field
         if (name.isBlank()) {
             binding.layoutProductName.error = "Product name is required"
             binding.manualEntryScroll.smoothScrollTo(0, binding.layoutProductName.top)
@@ -522,7 +586,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             parseTextExpiryDate(binding.expiryDateWheel.editTextExpiryDate.text?.toString().orEmpty())
         }
 
-        // 3. Check Date: Optional in prompt but mandatory here.
+        // CODE STRUCTURE: Validation check for mandatory expiry date
         val finalExpiryMillis = expiryMillis
         if (finalExpiryMillis == null) {
             if (dateInputMode == DateInputMode.TEXT) {
@@ -536,7 +600,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             return
         }
 
-        // Reasonableness Check: Disallow dates too far in the past or impossibly far in the future
+        // USE OF CODE STRUCTURES: Logic check to prevent invalid or extreme expiration dates
         val currentMillis = System.currentTimeMillis()
         val oneYearAgoMillis = currentMillis - (365L * 24 * 60 * 60 * 1000)
         val tenYearsFutureMillis = currentMillis + (10L * 365 * 24 * 60 * 60 * 1000)
@@ -567,8 +631,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             return
         }
 
-        // 4. Check Types & Ranges:
-        // Quantity (quantity): Default automatically to 1. Range Check: 1 to 999.
+        // CODE STRUCTURE: Range check for quantity using conditional operators
         val qtyString = binding.editTextQuantity.text.toString().trim()
         var qtyInt = qtyString.toIntOrNull() ?: 1
         if (qtyInt < 1) qtyInt = 1
@@ -578,7 +641,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             return
         }
 
-        // Weight: Optional 1 to 999,999 (g/ml)
+        // CODE STRUCTURE: Range check for numeric weight data
         val weightString = binding.editTextWeight.text.toString().trim()
         val parsedWeight = weightString.toIntOrNull()
         val finalWeight: Int?
@@ -591,13 +654,6 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             finalWeight = parsedWeight
         } else {
             finalWeight = null
-        }
-
-        // Brand check
-        if ((brand?.length ?: 0) > 50) {
-            binding.layoutBrand.error = "Brand must be 50 characters or less"
-            binding.manualEntryScroll.smoothScrollTo(0, binding.layoutBrand.top)
-            return
         }
 
         // 5. Instantiate Product() & Commit to SQLite Room DB.
@@ -620,6 +676,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             dateModified = if (isEditing) currentTime else null
         )
 
+        // USE OF CODE STRUCTURES: Selection structure to determine between Insert or Update operation
         if (isEditing) {
             productViewModel.update(product)
             editingProduct?.let { NotificationScheduler.cancelForProduct(this, it) }

@@ -4,22 +4,41 @@ import android.content.Context
 import android.content.SharedPreferences
 import java.util.Calendar
 
+/**
+ * FUNCTIONALITY: Manages application-wide persistent settings and user preferences using 
+ * Android SharedPreferences.
+ * USE OF DATA: Stores and retrieves primitive values (Boolean, Int, Long) and String 
+ * sets for settings like notifications, snooze timestamps, and accessibility options.
+ * USE OF CODE STRUCTURES: Utilizes an 'object' singleton for shared access, 
+ * helper functions for SharedPreferences interaction, and 'edit().apply()' for 
+ * asynchronous writes.
+ */
 object Prefs {
-    private const val NAME = "expiryx_prefs"
+    private const val NAME = "expiryx_prefs" // Filename for the shared preferences storage
 
     private const val KEY_NOTIF_ENABLED = "notifications_enabled" // Keep general on/off
-    private const val KEY_DEFAULT_HOUR = "notif_default_hour"
-    private const val KEY_DEFAULT_MINUTE = "notif_default_minute"
-    private const val KEY_REMINDER_INTERVALS = "reminder_intervals"
-    private const val KEY_SNOOZE_END_TIMESTAMP = "snooze_end_timestamp"
-    private const val KEY_SYNC_ENABLED = "sync_enabled"
-    private const val KEY_HIGH_CONTRAST = "high_contrast"
-    private const val KEY_COLORBLIND_MODE = "colorblind_mode"
+    private const val KEY_DEFAULT_HOUR = "notif_default_hour" // Hour for daily notification check
+    private const val KEY_DEFAULT_MINUTE = "notif_default_minute" // Minute for daily notification check
+    private const val KEY_REMINDER_INTERVALS = "reminder_intervals" // Set of days before expiry to notify
+    private const val KEY_SNOOZE_END_TIMESTAMP = "snooze_end_timestamp" // Epoch timestamp when snooze expires
+    private const val KEY_SYNC_ENABLED = "sync_enabled" // Flag for cloud synchronization
+    private const val KEY_HIGH_CONTRAST = "high_contrast" // Accessibility setting for UI contrast
+    private const val KEY_COLORBLIND_MODE = "colorblind_mode" // Accessibility setting for colorblind support
 
+    /**
+     * FUNCTIONALITY: Provides access to the SharedPreferences instance.
+     * USE OF DATA: Takes 'Context' and returns 'SharedPreferences'.
+     * USE OF CODE STRUCTURES: Standard private helper function.
+     */
     private fun sp(context: Context): SharedPreferences =
         context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
     // ---- Sync ----
+    /**
+     * FUNCTIONALITY: Checks if cloud synchronization is enabled.
+     * USE OF DATA: Returns a 'Boolean' from storage, defaulting to true.
+     * USE OF CODE STRUCTURES: Single-expression function retrieving from SharedPreferences.
+     */
     fun isSyncEnabled(context: Context): Boolean =
         sp(context).getBoolean(KEY_SYNC_ENABLED, true)
 
@@ -31,6 +50,11 @@ object Prefs {
     fun isNotificationsEnabled(context: Context): Boolean =
         sp(context).getBoolean(KEY_NOTIF_ENABLED, true)
 
+    /**
+     * FUNCTIONALITY: Enables or disables notifications and clears snooze if disabling.
+     * USE OF DATA: Accepts 'enabled' (Boolean).
+     * USE OF CODE STRUCTURES: Uses 'if' selection to trigger 'clearSnooze()' when disabled.
+     */
     fun setNotificationsEnabled(context: Context, enabled: Boolean) {
         sp(context).edit().putBoolean(KEY_NOTIF_ENABLED, enabled).apply()
         if (!enabled) { // If turning all notifications off, also clear any active snooze
@@ -71,8 +95,10 @@ object Prefs {
     }
 
     /**
-     * Sets snooze for a specified number of days from now.
-     * @param days Number of days to snooze. If 0 or less, snooze is cleared.
+     * FUNCTIONALITY: Sets a notification snooze for a specified number of days.
+     * USE OF DATA: Calculates a future epoch timestamp (Long) based on 'days' (Int).
+     * USE OF CODE STRUCTURES: Uses 'if/else' selection for range validation and 
+     * 'Calendar' operations to compute the target date.
      */
     fun setSnooze(context: Context, days: Int) {
         if (days > 0) {

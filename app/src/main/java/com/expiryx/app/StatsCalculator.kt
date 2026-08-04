@@ -4,27 +4,44 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+/**
+ * FUNCTIONALITY: Performs complex arithmetic and data aggregation on product and history 
+ * lists to generate analytical insights for the Stats UI.
+ * USE OF DATA: Processes 'List<Product>' and 'List<History>', 'TimeRange' enums, 
+ * and returns a 'StatsUiState' data object containing calculated percentages and counts.
+ * USE OF CODE STRUCTURES: Employs functional collection operators (.filter, .map, .count, .groupBy) 
+ * for data transformation and 'if/else' selection for range-based filtering.
+ */
 object StatsCalculator {
 
-    private const val DAY_MS = 86_400_000L
-    private const val UNKNOWN_BRAND = "Unknown"
+    private const val DAY_MS = 86_400_000L // Constant for one day in milliseconds
+    private const val UNKNOWN_BRAND = "Unknown" // Fallback label for products without a brand
 
+    /**
+     * FUNCTIONALITY: Main entry point for computing all dashboard statistics.
+     * USE OF DATA: Ingests raw lists of products and history, outputs 'StatsUiState'.
+     * USE OF CODE STRUCTURES: Uses iterative filtering logic to isolate data within 
+     * specific time windows and sequential calculation blocks for various KPIs.
+     */
     fun compute(
         products: List<Product>,
         history: List<History>,
         timeRange: TimeRange,
         now: Long = System.currentTimeMillis(),
     ): StatsUiState {
+        // CODE STRUCTURE: Selection structure to determine the temporal scope of the analysis
         val rangeStart = timeRange.startMillis(now)
         val filteredHistory = if (rangeStart == null) {
             history
         } else {
+            // USE OF CODE STRUCTURES: Lambda predicate filtering based on timestamp comparison
             history.filter { it.timestamp >= rangeStart }
         }
 
         val isEmpty = products.isEmpty() && history.isEmpty()
         val hasHistoryInRange = filteredHistory.isNotEmpty()
 
+        // DATA TRANSFORMATION: Categorizing and counting actions using predicate filters
         val used = filteredHistory.count { it.action == "Used" }
         val expired = filteredHistory.count { it.action == "Expired" }
         val deleted = filteredHistory.count { it.action == "Deleted" }
@@ -33,10 +50,12 @@ object StatsCalculator {
         val wasteRate = safePercent(expired, totalActions)
         val itemsAddedInRange = countAddedInRange(products, rangeStart)
 
+        // USE OF CODE STRUCTURES: Functional mapping and filtering to calculate lifecycle averages
         val usedItems = filteredHistory.filter { it.action == "Used" }
         val avgDaysToUse = usedItems
             .mapNotNull { item ->
                 val days = (item.timestamp - item.dateAdded).toFloat() / DAY_MS
+                // CODE STRUCTURE: Range check to discard illogical negative dates
                 if (days >= 0) days else null
             }
             .takeIf { it.isNotEmpty() }
@@ -52,6 +71,7 @@ object StatsCalculator {
         val withBarcode = products.count { !it.barcode.isNullOrBlank() }
         val barcodeScanRate = safePercent(withBarcode, products.size)
 
+        // Return the compiled UI state object
         return StatsUiState(
             timeRange = timeRange,
             isLoading = false,
@@ -81,6 +101,11 @@ object StatsCalculator {
         )
     }
 
+    /**
+     * FUNCTIONALITY: Counts how many products were added within a specific time period.
+     * USE OF DATA: Reads 'List<Product>', returns 'Int'.
+     * USE OF CODE STRUCTURES: Selection structure to handle 'null' (infinite) ranges.
+     */
     private fun countAddedInRange(
         products: List<Product>,
         rangeStart: Long?,
@@ -91,6 +116,11 @@ object StatsCalculator {
         return products.count { it.dateAdded >= rangeStart }
     }
 
+    /**
+     * FUNCTIONALITY: Identifies the most frequently occurring brands for a specific action (e.g., Waste).
+     * USE OF DATA: Groups 'History' by 'brand' string and counts occurrences.
+     * USE OF CODE STRUCTURES: Chain of functional operations: filter -> groupBy -> map -> sortedBy -> take.
+     */
     private fun topBrands(history: List<History>, action: String, limit: Int = 5): List<BrandStat> {
         return history
             .filter { it.action == action }
@@ -100,6 +130,12 @@ object StatsCalculator {
             .take(limit)
     }
 
+    /**
+     * FUNCTIONALITY: Generates data points for the weekly activity chart.
+     * USE OF DATA: Iterates over time chunks, returning 'List<WeeklyActivity>'.
+     * USE OF CODE STRUCTURES: Uses a 'while' loop to increment temporal cursors and 
+     * nested 'count' predicates to bucket events into weeks.
+     */
     private fun buildWeeklyActivity(
         products: List<Product>,
         history: List<History>,
@@ -110,11 +146,14 @@ object StatsCalculator {
             products.minOfOrNull { it.dateAdded } ?: now,
             history.minOfOrNull { it.timestamp } ?: now,
         )
+        // CODE STRUCTURE: Guard clause to prevent processing future or empty ranges
         if (effectiveStart >= now) return emptyList()
 
         val weekStarts = mutableListOf<Long>()
         var cursor = ExpiryBucketUtils.getStartOfDay(effectiveStart)
         val end = ExpiryBucketUtils.getStartOfDay(now)
+        
+        // USE OF CODE STRUCTURES: Iteration structure to build a timeline of week-start timestamps
         while (cursor <= end) {
             weekStarts.add(cursor)
             cursor += 7 * DAY_MS
@@ -136,6 +175,11 @@ object StatsCalculator {
         }.takeLast(12)
     }
 
+    /**
+     * FUNCTIONALITY: Safely calculates percentage to avoid division-by-zero errors.
+     * USE OF DATA: Accepts two 'Int' values, returns a 'Float'.
+     * USE OF CODE STRUCTURES: 'if' selection for safety check.
+     */
     private fun safePercent(numerator: Int, denominator: Int): Float {
         if (denominator <= 0) return 0f
         return (numerator.toFloat() / denominator) * 100f

@@ -27,6 +27,14 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.PercentFormatter
 import java.util.Locale
 
+/**
+ * FUNCTIONALITY: Renders a comprehensive analytics dashboard featuring waste charts, 
+ * lifecycle metrics, brand performance, and user efficiency KPIs.
+ * USE OF DATA: Observes a 'StatsUiState' data object containing aggregated 'Float' and 
+ * 'Int' values derived from the full product and history datasets.
+ * USE OF CODE STRUCTURES: Extends 'ThemedAppCompatActivity'; employs the Observer 
+ * pattern to reactively update complex chart and list components upon data emission.
+ */
 class StatsActivity : ThemedAppCompatActivity() {
 
     private lateinit var binding: ActivityStatsBinding
@@ -73,6 +81,11 @@ class StatsActivity : ThemedAppCompatActivity() {
         binding.recyclerBrandsWasted.adapter = brandsWastedAdapter
     }
 
+    /**
+     * FUNCTIONALITY: Configures selection listeners for time-range filtering chips.
+     * USE OF DATA: Maps UI components to 'TimeRange' enum values.
+     * USE OF CODE STRUCTURES: Iterates over a 'Map' to attach click listeners to multiple views.
+     */
     private fun setupTimeRangeChips() {
         val chipMap = mapOf(
             binding.chip7d to TimeRange.DAYS_7,
@@ -81,6 +94,7 @@ class StatsActivity : ThemedAppCompatActivity() {
             binding.chip1y to TimeRange.YEAR,
             binding.chipAll to TimeRange.ALL,
         )
+        // CODE STRUCTURE: Iteration structure for batching listener setup
         chipMap.forEach { (chip, range) ->
             chip.setOnClickListener {
                 viewModel.setTimeRange(range)
@@ -143,6 +157,7 @@ class StatsActivity : ThemedAppCompatActivity() {
             description.isEnabled = false
             setDrawGridBackground(false)
             setDrawBarShadow(false)
+            setDrawBarShadow(false)
             setDrawValueAboveBar(false)
             axisRight.isEnabled = false
             axisLeft.textColor = resolveChartTextColor()
@@ -163,10 +178,19 @@ class StatsActivity : ThemedAppCompatActivity() {
         return ContextCompat.getColor(this, if (ThemeManager.isDarkMode(this)) R.color.white else R.color.black)
     }
 
+    /**
+     * FUNCTIONALITY: Binds the calculated statistical state to the view's various data visualizers.
+     * USE OF DATA: Consumes 'StatsUiState' emission.
+     * USE OF CODE STRUCTURES: Selection structure (if/else) handling global empty-state 
+     * and sequential calls to specific binder methods.
+     */
     private fun observeStats() {
+        // CODE STRUCTURE: Observer pattern reacting to calculated analytics updates
         viewModel.statsState.observe(this) { state ->
             updateTimeRangeSelection(state.timeRange)
             val emptyState = binding.emptyStateLayout
+            
+            // CODE STRUCTURE: Selection structure for managing dashboard content visibility
             emptyState.root.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
             binding.statsContentLayout.visibility = if (state.isEmpty) View.GONE else View.VISIBLE
             
@@ -238,6 +262,12 @@ class StatsActivity : ThemedAppCompatActivity() {
         )
     }
 
+    /**
+     * FUNCTIONALITY: Populates the Lifecycle PieChart with distribution data (Used vs Expired vs Deleted).
+     * USE OF DATA: Converts Int lifecycle counts to 'PieEntry' objects.
+     * USE OF CODE STRUCTURES: Functional 'filter' to remove empty entries and 'apply' 
+     * for style configuration.
+     */
     private fun bindLifecycleChart(state: StatsUiState) {
         val total = state.lifecycleUsed + state.lifecycleExpired + state.lifecycleDeleted
         val hasData = total > 0
@@ -246,6 +276,7 @@ class StatsActivity : ThemedAppCompatActivity() {
 
         if (!hasData) return
 
+        // DATA: Mapping lifecycle counts to PieChart entries
         val entries = listOf(
             PieEntry(state.lifecycleUsed.toFloat(), getString(R.string.stats_action_used)),
             PieEntry(state.lifecycleExpired.toFloat(), getString(R.string.stats_action_expired)),
@@ -269,6 +300,12 @@ class StatsActivity : ThemedAppCompatActivity() {
         binding.chartLifecycle.invalidate()
     }
 
+    /**
+     * FUNCTIONALITY: Populates the Weekly activity BarChart with grouped trend data.
+     * USE OF DATA: Transforms 'List<WeeklyActivity>' into four separate 'BarDataSet' instances.
+     * USE OF CODE STRUCTURES: 'mapIndexed' iteration to generate X-axis coordinates 
+     * and 'groupBars' to cluster multi-type data points.
+     */
     private fun bindActivityChart(state: StatsUiState) {
         val weeks = state.weeklyActivity
         val hasData = weeks.any { it.added + it.used + it.expired + it.deleted > 0 }
@@ -281,6 +318,7 @@ class StatsActivity : ThemedAppCompatActivity() {
         val barSpace = 0.02f
         val barWidth = 0.18f
 
+        // USE OF CODE STRUCTURES: Functional mapping to build temporal trend entries
         val addedEntries = weeks.mapIndexed { i, w -> BarEntry(i.toFloat(), w.added.toFloat()) }
         val usedEntries = weeks.mapIndexed { i, w -> BarEntry(i.toFloat(), w.used.toFloat()) }
         val expiredEntries = weeks.mapIndexed { i, w -> BarEntry(i.toFloat(), w.expired.toFloat()) }
@@ -301,6 +339,7 @@ class StatsActivity : ThemedAppCompatActivity() {
             this.data = data
             xAxis.axisMinimum = -0.5f
             xAxis.axisMaximum = labels.size - 0.5f
+            // CODE STRUCTURE: API call for clustered bar visualization
             groupBars(-0.5f, groupSpace, barSpace)
             invalidate()
         }
@@ -313,6 +352,11 @@ class StatsActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Dynamically builds a vertical bar chart of products bucketed by expiry status.
+     * USE OF DATA: Iterates over 'List<ExpiryBucketStat>', creating views for each.
+     * USE OF CODE STRUCTURES: 'forEach' iteration over data triggers dynamic layout inflation.
+     */
     private fun bindExpiryBuckets(state: StatsUiState) {
         binding.expiryBucketsContainer.removeAllViews()
         val buckets = state.expiryBuckets
@@ -322,6 +366,7 @@ class StatsActivity : ThemedAppCompatActivity() {
 
         val maxCount = buckets.maxOf { it.count }.coerceAtLeast(1)
         val inflater = LayoutInflater.from(this)
+        // CODE STRUCTURE: Iterative construction of the bucket comparison chart
         buckets.forEach { bucket ->
             val row = inflater.inflate(R.layout.view_expiry_bucket_bar, binding.expiryBucketsContainer, false)
             row.findViewById<TextView>(R.id.txtBucketLabel).text = bucket.label

@@ -29,6 +29,14 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * FUNCTIONALITY: Provides a real-time camera interface for scanning product barcodes 
+ * and automatically fetching product metadata from the OpenFoodFacts API.
+ * USE OF DATA: Utilizes CameraX 'PreviewView', ML Kit 'Barcode' objects, and JSON 
+ * responses from external network calls.
+ * USE OF CODE STRUCTURES: Implements CameraX lifecycle binding, ML Kit analysis 
+ * callbacks, and OkHttp network requests within an IO-bound coroutine.
+ */
 @ExperimentalGetImage
 class BarcodeScannerActivity : ThemedAppCompatActivity() {
 
@@ -39,7 +47,7 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
     private var camera: androidx.camera.core.Camera? = null
     private var isFlashlightOn = false
     private var analysis: ImageAnalysis? = null
-    private val handled = AtomicBoolean(false)
+    private val handled = AtomicBoolean(false) // Prevents multiple scans of the same barcode
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val cameraPermission = registerForActivityResult(
@@ -89,6 +97,7 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
 
         startScanAnimation()
 
+        // CODE STRUCTURE: Permission selection check before starting camera hardware
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -116,6 +125,12 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
         progressBar.visibility = if (loading) View.VISIBLE else View.GONE
     }
 
+    /**
+     * FUNCTIONALITY: Configures and starts the CameraX preview and image analysis pipelines.
+     * USE OF DATA: Manages 'ProcessCameraProvider' and 'ImageAnalysis' use cases.
+     * USE OF CODE STRUCTURES: Uses a listener for the camera provider future and 
+     * sets an analyzer callback that processes frames via ML Kit.
+     */
     @ExperimentalGetImage
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -132,13 +147,13 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                     .build()
 
                 val options = BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(
-                        Barcode.FORMAT_ALL_FORMATS
-                    )
+                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
                     .build()
                 val scanner = BarcodeScanning.getClient(options)
 
+                // USE OF CODE STRUCTURES: Frame-by-frame analysis callback for barcode detection
                 analysis?.setAnalyzer(cameraExecutor) { imageProxy ->
+                    // CODE STRUCTURE: Atomic check to ignore frames if a barcode is already being processed
                     if (handled.get()) {
                         imageProxy.close()
                         return@setAnalyzer
@@ -153,6 +168,7 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                         imageProxy.imageInfo.rotationDegrees
                     )
 
+                    // CODE STRUCTURE: ML Kit async success/failure listeners for barcode results
                     scanner.process(image)
                         .addOnSuccessListener { barcodes ->
                             val candidate = barcodes.firstOrNull()?.rawValue
@@ -185,6 +201,11 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+    /**
+     * FUNCTIONALITY: Toggles the device's camera flash (torch) on or off.
+     * USE OF DATA: Accesses 'cameraControl' and updates 'isFlashlightOn' (Boolean).
+     * USE OF CODE STRUCTURES: Selection logic to update UI button text based on state.
+     */
     private fun toggleFlashlight() {
         camera?.let {
             isFlashlightOn = !isFlashlightOn
@@ -197,6 +218,12 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Queries the OpenFoodFacts API to retrieve detailed product information.
+     * USE OF DATA: Ingests 'barcode' (String). Parses a JSON response into a 'Product' object.
+     * USE OF CODE STRUCTURES: Executes network I/O within 'ioScope' (Dispatchers.IO) 
+     * and uses 'withContext(Dispatchers.Main)' to return to the UI thread with results.
+     */
     private fun fetchProductInfo(barcode: String) {
         val client = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -206,14 +233,17 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
             .url("https://world.openfoodfacts.org/api/v2/product/$barcode.json")
             .build()
 
+        // USE OF CODE STRUCTURES: Coroutine block for non-blocking network communication
         ioScope.launch {
             try {
                 val body = client.newCall(request).execute().use { resp ->
+                    // CODE STRUCTURE: Safety check for HTTP response status
                     if (!resp.isSuccessful) null else resp.body?.string()
                 }
 
                 if (body != null) {
                     val json = JSONObject(body)
+                    // CODE STRUCTURE: Selection path based on API 'status' field (1 = Found)
                     if (json.optInt("status", 0) == 1) {
                         val productJson = json.getJSONObject("product")
                         val name = productJson.optString("product_name", "").trim()
@@ -222,6 +252,7 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                         val weightString = productJson.optString("quantity", "")
                         val imageUrl = productJson.optString("image_url", "").takeIf { it.isNotBlank() }
 
+                        // CODE STRUCTURE: Parsing weight units using string comparison selection
                         val weightUnit = when {
                             weightString.contains("ml", ignoreCase = true) -> "ml"
                             weightString.contains("g", ignoreCase = true) -> "g"
@@ -261,7 +292,7 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                             setLoading(false)
                             Toast.makeText(this@BarcodeScannerActivity, "Product not found in database.", Toast.LENGTH_SHORT).show()
                             
-                            // Resume preview by resetting the handled flag
+                            // CODE STRUCTURE: Reset flag to allow another scan attempt
                             handled.set(false)
                         }
                     }
@@ -285,6 +316,11 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Cleans up hardware resources and cancels pending background tasks.
+     * USE OF DATA: Shuts down 'ExecutorService' and cancels 'ioScope'.
+     * USE OF CODE STRUCTURES: Sequential teardown: unbind camera -> shutdown executor -> cancel coroutines.
+     */
     override fun onDestroy() {
         super.onDestroy()
         try {

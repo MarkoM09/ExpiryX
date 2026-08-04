@@ -12,6 +12,14 @@ import com.expiryx.app.databinding.BottomsheetHistoryDetailBinding
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * FUNCTIONALITY: Displays granular detail parameters for an archived history record 
+ * and provides options for restoration or permanent deletion.
+ * USE OF DATA: Accepts a 'History' parcelable extra object containing 'action' (String) 
+ * and various 'Long' timestamps. Uses 'BottomsheetHistoryDetailBinding' for UI population.
+ * USE OF CODE STRUCTURES: Extends 'ThemedBottomSheetDialogFragment'; populates UI 
+ * fields during 'onViewCreated' and uses 'when' selection logic for dynamic action button labeling.
+ */
 class HistoryDetailBottomSheet : ThemedBottomSheetDialogFragment() {
 
     private var _binding: BottomsheetHistoryDetailBinding? = null
@@ -54,8 +62,14 @@ class HistoryDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         setupListeners(history)
     }
 
+    /**
+     * FUNCTIONALITY: Binds the historical record's attributes to the bottom sheet's UI components.
+     * USE OF DATA: Reads snapshot data from the 'History' entity (productName, action, timestamps).
+     * USE OF CODE STRUCTURES: Selection structures (if/else) to handle optional fields 
+     * like brand, weight, and modification dates.
+     */
     private fun populateUI(h: History) {
-        // Image
+        // IMAGE LOADING: CODE STRUCTURE: Async image loading via Glide
         Glide.with(requireContext())
             .load(h.imageUri)
             .placeholder(R.drawable.ic_placeholder)
@@ -65,6 +79,8 @@ class HistoryDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         // Core fields
         binding.textHistoryName.text = h.productName
         binding.textHistoryBrand.text = h.brand.takeIf { !it.isNullOrBlank() } ?: "No brand"
+        
+        // CODE STRUCTURE: Visibility selection based on data existence
         binding.textHistoryBrand.visibility = if (h.brand.isNullOrBlank()) View.GONE else View.VISIBLE
 
         binding.textHistoryExpiry.text = getString(R.string.expiry_label, h.expirationDate?.let { formatDate(it) } ?: "N/A")
@@ -97,8 +113,14 @@ class HistoryDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Attaches logic to the primary and secondary action buttons.
+     * USE OF DATA: Consumes 'history.action' (String).
+     * USE OF CODE STRUCTURES: 'when' selection structure to adapt button text 
+     * and functionality based on the item's historical context.
+     */
     private fun setupListeners(history: History) {
-        // Actions based on type
+        // CODE STRUCTURE: Branching logic determining restore action workflow
         when (history.action) {
             "Deleted" -> {
                 binding.btnPrimary.text = getString(R.string.restore)
@@ -123,6 +145,7 @@ class HistoryDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         // Permanent delete
         binding.btnSecondary.text = getString(R.string.history_permanently_delete_title)
         binding.btnSecondary.setOnClickListener {
+            // CODE STRUCTURE: Confirmation dialog selection prior to destructive DB call
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(getString(R.string.history_permanently_delete_title))
                 .setMessage(getString(R.string.history_permanently_delete_msg, history.productName))

@@ -12,6 +12,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * FUNCTIONALITY: Displays complete, granular details for an active inventory product 
+ * and provides interaction points for editing, deleting, snoozing, or marking as used.
+ * USE OF DATA: Consumes a 'Product' entity object passed via 'Bundle' arguments. 
+ * Interacts with 'ProductViewModel' for state updates.
+ * USE OF CODE STRUCTURES: Extends 'ThemedBottomSheetDialogFragment'; binds click 
+ * listeners to launch management workflows and uses 'if/else' selection for UI state toggles.
+ */
 class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
 
     private var _binding: BottomSheetProductDetailBinding? = null
@@ -30,6 +38,11 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         return binding.root
     }
 
+    /**
+     * FUNCTIONALITY: Orchestrates UI initialization and data binding when the view is ready.
+     * USE OF DATA: Extracts 'Product' from arguments.
+     * USE OF CODE STRUCTURES: Uses 'let' or null-safety selection (?: return) for secure data access.
+     */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         WindowInsetsHelper.setupBottomSheetEdgeToEdge(this, binding.root)
@@ -39,7 +52,14 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         setupListeners(product)
     }
 
+    /**
+     * FUNCTIONALITY: Populates the detail view components with the provided product's metadata.
+     * USE OF DATA: Binds String, Int, and formatted Long (date) values from 'Product'.
+     * USE OF CODE STRUCTURES: Sequential binding with 'if' selection for optional 
+     * data fields (Brand, Weight, Barcode).
+     */
     private fun populateUI(p: Product) {
+        // CODE STRUCTURE: Async image loading with Glide handling fallback placeholders
         Glide.with(requireContext())
             .load(if (p.imageUri.isNullOrBlank()) R.drawable.ic_placeholder else Uri.parse(p.imageUri))
             .error(R.drawable.ic_placeholder)
@@ -48,6 +68,7 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
 
         binding.txtDetailName.text = p.name
         binding.txtDetailBrand.text = p.brand
+        // CODE STRUCTURE: Visibility selection for optional brand info
         binding.txtDetailBrand.visibility = if (p.brand.isNullOrBlank()) View.GONE else View.VISIBLE
 
         binding.txtDetailExpiry.text = getString(
@@ -61,6 +82,7 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
 
         binding.txtDetailQuantity.text = getString(R.string.quantity_label, p.quantity)
 
+        // CODE STRUCTURE: Selection logic for optional weight display
         if (p.weight != null) {
             binding.txtDetailWeight.text = getString(R.string.weight_label, p.weight, p.weightUnit)
             binding.txtDetailWeight.visibility = View.VISIBLE
@@ -87,6 +109,11 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         updateSnoozeButton(p.isSnoozed)
     }
 
+    /**
+     * FUNCTIONALITY: Updates the visual appearance of the snooze button based on active state.
+     * USE OF DATA: Consumes 'isSnoozed' (Boolean).
+     * USE OF CODE STRUCTURES: Selection structure (if/else) picking string resources and alpha values.
+     */
     private fun updateSnoozeButton(isSnoozed: Boolean) {
         binding.btnSnooze.apply {
             text = if (isSnoozed) "Snoozed" else "Snooze"
@@ -95,6 +122,12 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Attaches event listeners for management actions (Edit, Delete, Use, Snooze).
+     * USE OF DATA: Ingests the 'Product' object.
+     * USE OF CODE STRUCTURES: Lambda execution blocks and 'if/else' selection for 
+     * toggling snooze state and rescheduling alarms.
+     */
     private fun setupListeners(p: Product) {
         val hostActivity = activity as? MainActivity
         binding.btnMarkAsUsed.setOnClickListener {
@@ -110,13 +143,12 @@ class ProductDetailBottomSheet : ThemedBottomSheetDialogFragment() {
             dismiss()
         }
         binding.btnSnooze.setOnClickListener {
+            // CODE STRUCTURE: Data modification and persistence logic
             val updatedProduct = p.copy(isSnoozed = !p.isSnoozed)
             viewModel.update(updatedProduct)
             updateSnoozeButton(updatedProduct.isSnoozed)
-            val msg = if (updatedProduct.isSnoozed) "Notifications muted for this item" else "Notifications enabled"
-            android.widget.Toast.makeText(requireContext(), msg, android.widget.Toast.LENGTH_SHORT).show()
-            // NotificationScheduler is handled in ViewModel/Repository update usually, 
-            // but we ensure it matches the new state.
+            
+            // CODE STRUCTURE: Branching logic to immediately update system alarm schedules
             if (updatedProduct.isSnoozed) {
                 NotificationScheduler.cancelForProduct(requireContext(), updatedProduct)
             } else {

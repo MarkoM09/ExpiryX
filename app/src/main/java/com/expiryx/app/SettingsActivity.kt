@@ -21,10 +21,23 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+/**
+ * FUNCTIONALITY: Provides a central interface for application configuration, 
+ * including theme selection, account management, accessibility toggles, and data backup/restore.
+ * USE OF DATA: Ingests user preference selections (Booleans, Ints). Exports and 
+ * imports CSV formatted Strings to the device's storage.
+ * USE OF CODE STRUCTURES: Extends 'ThemedAppCompatActivity'; utilizes View Binding click 
+ * listeners, 'when' selection for theme switches, and coroutines for background I/O.
+ */
 class SettingsActivity : ThemedAppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
 
+    /**
+     * FUNCTIONALITY: Callback launcher for the system document picker to select CSV files.
+     * USE OF DATA: Accepts a 'Uri' pointing to the selected file.
+     * USE OF CODE STRUCTURES: Uses 'let' scope function to conditionally trigger the import process.
+     */
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri?.let { importDataFromCsv(it) }
     }
@@ -88,6 +101,12 @@ class SettingsActivity : ThemedAppCompatActivity() {
         refreshAccentSubtitle()
     }
 
+    /**
+     * FUNCTIONALITY: Re-launches the activity without transition animations to apply 
+     * theme changes while preserving user scroll state.
+     * USE OF DATA: Stores 'scrollY' (Int) in the restart intent.
+     * USE OF CODE STRUCTURES: Sequential finish/restart sequence with overridden transitions.
+     */
     private fun smartRecreate() {
         val scrollY = binding.settingsScrollView.scrollY
         val intent = intent
@@ -127,8 +146,15 @@ class SettingsActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Updates the account card display based on current authentication state.
+     * USE OF DATA: Reads user profile data from 'AccountManager'.
+     * USE OF CODE STRUCTURES: Selection structure (if/else) for switching between 
+     * login CTA and profile management views.
+     */
     private fun setupAccountSection() {
         val user = AccountManager.getCurrentUser()
+        // CODE STRUCTURE: Branching selection based on active user login state
         if (user != null) {
             binding.userNameText.text = user.displayName ?: "User"
             binding.userEmailText.text = user.email
@@ -175,10 +201,17 @@ class SettingsActivity : ThemedAppCompatActivity() {
         BottomNavHelper.setup(this, binding.bottomNav.bottomNavigationView, R.id.nav_settings)
     }
 
+    /**
+     * FUNCTIONALITY: Configures the multi-state theme selector (Light, Dark, System).
+     * USE OF DATA: Consumes ThemeMode 'Int' constants.
+     * USE OF CODE STRUCTURES: 'when' selection for UI initialization and listener-based 
+     * routing for state changes.
+     */
     private fun setupDarkModeToggle() {
         val currentMode = ThemeManager.getThemeMode(this)
         val toggle = binding.toggleGroupTheme
         
+        // CODE STRUCTURE: Selection structure initializing the toggle group state
         when (currentMode) {
             ThemeManager.THEME_SYSTEM -> toggle.check(R.id.btnThemeSystem)
             ThemeManager.THEME_LIGHT -> toggle.check(R.id.btnThemeLight)
@@ -194,6 +227,7 @@ class SettingsActivity : ThemedAppCompatActivity() {
 
         toggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
+                // CODE STRUCTURE: Branching logic mapping UI selection to theme mode
                 val newMode = when (checkedId) {
                     R.id.btnThemeSystem -> ThemeManager.THEME_SYSTEM
                     R.id.btnThemeLight -> ThemeManager.THEME_LIGHT
@@ -229,12 +263,22 @@ class SettingsActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Generates a CSV file containing all product and history records 
+     * and saves it to the public Downloads folder.
+     * USE OF DATA: Serializes database objects into raw CSV 'Strings'. Manages 
+     * 'MediaStore' content values and 'Uri' targets.
+     * USE OF CODE STRUCTURES: Launches a coroutine on 'Dispatchers.IO' for database 
+     * read and file stream write. Employs 'try/catch' for storage permission handling.
+     */
     private fun exportDataToCsv() {
         val repo = (application as ProductApplication).repository
+        // CODE STRUCTURE: Asynchronous execution block for storage I/O
         lifecycleScope.launch(Dispatchers.IO) {
             val products = repo.getAllProductsNow()
             val history = repo.getAllHistoryNow()
 
+            // DATA TRANSFORMATION: Formatting database rows into CSV string lines
             val escape = { text: String? -> text?.replace("\"", "\"\"") ?: "" }
             val csvContent = buildString {
                 appendLine("TYPE,NAME,EXPIRY,QTY,WEIGHT,UNIT,BRAND,FAV,IMAGE,ACTION,TIMESTAMP,BARCODE,DATE_ADDED,DATE_MODIFIED")
@@ -253,6 +297,7 @@ class SettingsActivity : ThemedAppCompatActivity() {
             }
 
             try {
+                // CODE STRUCTURE: Version selection for scoped storage compatibility
                 val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     MediaStore.Downloads.EXTERNAL_CONTENT_URI
                 } else {
@@ -267,6 +312,14 @@ class SettingsActivity : ThemedAppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTIONALITY: Parses a user-selected CSV file and merges its contents into 
+     * the local database.
+     * USE OF DATA: Consumes 'Uri', reads 'BufferedReader' lines, and parses fields 
+     * using regex and type-conversion logic (toLongOrNull, toIntOrNull).
+     * USE OF CODE STRUCTURES: Employs nested 'for' iteration over file lines and 
+     * 'if/else' selection based on the 'TYPE' column for data routing.
+     */
     private fun importDataFromCsv(uri: Uri) {
         val repo = (application as ProductApplication).repository
         lifecycleScope.launch(Dispatchers.IO) {
@@ -278,8 +331,10 @@ class SettingsActivity : ThemedAppCompatActivity() {
 
                 var productsImported = 0
                 var historyImported = 0
+                // DATA: Regex pattern to correctly split CSV columns while ignoring commas inside quotes
                 val regex = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex()
 
+                // CODE STRUCTURE: Iteration structure processing the CSV row-by-row
                 for (i in 1 until lines.size) {
                     val line = lines[i]
                     if (line.isBlank()) continue
@@ -287,6 +342,7 @@ class SettingsActivity : ThemedAppCompatActivity() {
                     if (parts.size < 9) continue
 
                     val type = parts[0]
+                    // CODE STRUCTURE: Selection structure routing data to Product or History tables
                     if (type == "PRODUCT") {
                         val product = Product(
                             name = parts[1],
