@@ -81,6 +81,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
                     )
                 } catch (_: SecurityException) { /* ignore */ }
                 selectedImageUri = it.toString()
+                android.util.Log.d("ExpiryX_Debug", "[TC-05] Image selected: $selectedImageUri")
                 Glide.with(this).load(it).into(binding.imageProductPreview)
             }
         }
@@ -352,7 +353,8 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
             }
         } catch (_: ParseException) {
             // CODE STRUCTURE: Error handling path for malformed date strings
-            wheel.textExpiryDateError.text = getString(R.string.expiry_date_invalid)
+            android.util.Log.e("ExpiryX_Debug", "[TC-08] Invalid Date Format or Non-existent Date: $raw")
+            wheel.textExpiryDateError.text = "Invalid Date Format / Date does not exist"
             wheel.textExpiryDateError.visibility = View.VISIBLE
         }
     }
@@ -571,6 +573,7 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
 
         // CODE STRUCTURE: Existence check for mandatory product name field
         if (name.isBlank()) {
+            android.util.Log.e("ExpiryX_Debug", "[TC-04] Validation Error: Product name is blank")
             binding.layoutProductName.error = "Product name is required"
             binding.manualEntryScroll.smoothScrollTo(0, binding.layoutProductName.top)
             return
@@ -606,7 +609,8 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         val tenYearsFutureMillis = currentMillis + (10L * 365 * 24 * 60 * 60 * 1000)
         
         if (finalExpiryMillis < oneYearAgoMillis) {
-            val errorMsg = "Date cannot be more than 1 year in the past"
+            val errorMsg = "Expiry date cannot be over 1 year in the past"
+            android.util.Log.e("ExpiryX_Debug", "[TC-09] Validation Error: Date too far in past")
             if (dateInputMode == DateInputMode.TEXT) {
                 binding.expiryDateWheel.layoutExpiryText.error = errorMsg
                 binding.manualEntryScroll.smoothScrollTo(0, binding.expiryDateWheel.root.top)
@@ -647,10 +651,12 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         val finalWeight: Int?
         if (weightString.isNotBlank()) {
             if (parsedWeight == null || parsedWeight < 1 || parsedWeight > 999999) {
+                android.util.Log.e("ExpiryX_Debug", "[TC-07] Validation Error: Weight out of bounds ($weightString)")
                 binding.layoutWeight.error = "Weight must be between 1 and 999,999"
                 binding.manualEntryScroll.smoothScrollTo(0, binding.layoutWeight.top)
                 return
             }
+            android.util.Log.d("ExpiryX_Debug", "[TC-06] Valid Weight entered: $parsedWeight $selectedWeightUnit")
             finalWeight = parsedWeight
         } else {
             finalWeight = null

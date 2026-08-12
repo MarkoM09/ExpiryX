@@ -53,10 +53,21 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
     private val cameraPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startCamera()
-        else {
-            Toast.makeText(this, "Camera permission required", Toast.LENGTH_SHORT).show()
-            finish()
+        if (granted) {
+            android.util.Log.d("ExpiryX_Debug", "[TC-10] Camera permission GRANTED")
+            startCamera()
+        } else {
+            android.util.Log.e("ExpiryX_Debug", "[TC-10] Camera permission DENIED")
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Camera Permission Required")
+                .setMessage("This app requires camera access to scan barcodes. You can enter product details manually instead.")
+                .setPositiveButton("Open Manual Entry") { _, _ ->
+                    startActivity(Intent(this, ManualEntryActivity::class.java))
+                    finish()
+                }
+                .setNegativeButton("Cancel") { _, _ -> finish() }
+                .setCancelable(false)
+                .show()
         }
     }
 
@@ -174,6 +185,7 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                             val candidate = barcodes.firstOrNull()?.rawValue
 
                             if (candidate != null && handled.compareAndSet(false, true)) {
+                                Log.d("ExpiryX_Debug", "[BarcodeScan] Barcode detected: $candidate")
                                 runOnUiThread {
                                     setLoading(true)
                                     Toast.makeText(this, "Barcode detected: $candidate", Toast.LENGTH_SHORT).show()
@@ -225,6 +237,13 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
      * and uses 'withContext(Dispatchers.Main)' to return to the UI thread with results.
      */
     private fun fetchProductInfo(barcode: String) {
+        Log.d("ExpiryX_Debug", "[BarcodeScan] Raw string ingested: '$barcode'")
+
+        if (barcode.isBlank()) {
+            Log.e("ExpiryX_Debug", "[BarcodeScan] Error: Scanned barcode string is empty")
+            return
+        }
+
         val client = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
@@ -235,24 +254,31 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
 
         // USE OF CODE STRUCTURES: Coroutine block for non-blocking network communication
         ioScope.launch {
+            Log.d("ExpiryX_Debug", "[OFF_API] Initiating lookup on IO Thread: ${Thread.currentThread().name}")
             try {
+                var responseCode = -1
                 val body = client.newCall(request).execute().use { resp ->
-                    // CODE STRUCTURE: Safety check for HTTP response status
-                    if (!resp.isSuccessful) null else resp.body?.string()
+                    responseCode = resp.code
+                    if (!resp.isSuccessful) {
+                        Log.e("ExpiryX_Debug", "[OFF_API] HTTP Error: $responseCode")
+                        null
+                    } else resp.body?.string()
                 }
 
                 if (body != null) {
                     val json = JSONObject(body)
-                    // CODE STRUCTURE: Selection path based on API 'status' field (1 = Found)
-                    if (json.optInt("status", 0) == 1) {
+                    val status = json.optInt("status", 0)
+                    Log.d("ExpiryX_Debug", "[OFF_API] Response body received. Status: $status")
+
+                    if (status == 1) {
                         val productJson = json.getJSONObject("product")
                         val name = productJson.optString("product_name", "").trim()
+                        Log.d("ExpiryX_Debug", "[OFF_API] Product found: '$name'")
 
                         val brand = productJson.optString("brands", "").takeIf { it.isNotBlank() }
                         val weightString = productJson.optString("quantity", "")
                         val imageUrl = productJson.optString("image_url", "").takeIf { it.isNotBlank() }
 
-                        // CODE STRUCTURE: Parsing weight units using string comparison selection
                         val weightUnit = when {
                             weightString.contains("ml", ignoreCase = true) -> "ml"
                             weightString.contains("g", ignoreCase = true) -> "g"
@@ -275,11 +301,9 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                         )
 
                         withContext(Dispatchers.Main) {
+                            Log.d("ExpiryX_Debug", "[OFF_API] Result received: success=true, name='${product.name}'")
                             setLoading(false)
-                            val intent = Intent(
-                                this@BarcodeScannerActivity,
-                                ManualEntryActivity::class.java
-                            ).apply {
+                            val intent = Intent(this@BarcodeScannerActivity, ManualEntryActivity::class.java).apply {
                                 putExtra("product", product)
                                 putExtra("isEdit", false)
                                 putExtra("barcode", barcode)
@@ -288,32 +312,48 @@ class BarcodeScannerActivity : ThemedAppCompatActivity() {
                             finish()
                         }
                     } else {
+                        // Status is 0 (Not Found)
                         withContext(Dispatchers.Main) {
-                            setLoading(false)
-                            Toast.makeText(this@BarcodeScannerActivity, "Product not found in database.", Toast.LENGTH_SHORT).show()
-                            
-                            // CODE STRUCTURE: Reset flag to allow another scan attempt
-                            handled.set(false)
+                            Log.w("ExpiryX_Debug", "[OFF_API] Product unmapped (Status 0). Falling back to manual entry.")
+                            navigateToManualEntry(barcode)
                         }
                     }
                 } else {
                     withContext(Dispatchers.Main) {
                         setLoading(false)
-                        Toast.makeText(this@BarcodeScannerActivity, "Network error. Try manual entry.", Toast.LENGTH_SHORT).show()
-                        
-                        handled.set(false)
+                        if (responseCode == 404) {
+                            Log.w("ExpiryX_Debug", "[OFF_API] Product not found (404). Falling back to manual entry.")
+                            navigateToManualEntry(barcode)
+                        } else {
+                            Log.e("ExpiryX_Debug", "[OFF_API] Request failed with code: $responseCode")
+                            Toast.makeText(this@BarcodeScannerActivity, "Server error ($responseCode). Try manual entry.", Toast.LENGTH_SHORT).show()
+                            handled.set(false)
+                        }
                     }
                 }
             } catch (e: Exception) {
-                Log.e("BarcodeScanner", "API failed", e)
+                Log.e("ExpiryX_Debug", "[OFF_API] Exception during API call", e)
                 withContext(Dispatchers.Main) {
                     setLoading(false)
-                    Toast.makeText(this@BarcodeScannerActivity, "Error fetching product info.", Toast.LENGTH_SHORT).show()
-                    
+                    Toast.makeText(this@BarcodeScannerActivity, "Connection error. Try manual entry.", Toast.LENGTH_SHORT).show()
                     handled.set(false)
                 }
             }
         }
+    }
+
+    /**
+     * Navigates to ManualEntryActivity with just the barcode when API lookup fails to find a product.
+     */
+    private fun navigateToManualEntry(barcode: String) {
+        setLoading(false)
+        Toast.makeText(this, "Product not found. Please enter details manually.", Toast.LENGTH_LONG).show()
+        val intent = Intent(this, ManualEntryActivity::class.java).apply {
+            putExtra("barcode", barcode)
+            putExtra("isEdit", false)
+        }
+        startActivity(intent)
+        finish()
     }
 
     /**
