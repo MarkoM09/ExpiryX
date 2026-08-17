@@ -273,20 +273,23 @@ class SettingsActivity : ThemedAppCompatActivity() {
      */
     private fun exportDataToCsv() {
         val repo = (application as ProductApplication).repository
-        // CODE STRUCTURE: Asynchronous execution block for storage I/O
+        android.util.Log.d("ExpiryX_Debug", "[TC-13] Export process started")
+        
         lifecycleScope.launch(Dispatchers.IO) {
             val products = repo.getAllProductsNow()
             val history = repo.getAllHistoryNow()
+            
+            android.util.Log.d("ExpiryX_Debug", "[TC-13] Exporting ${products.size} products and ${history.size} history items")
 
             // DATA TRANSFORMATION: Formatting database rows into CSV string lines
-            val escape = { text: String? -> text?.replace("\"", "\"\"") ?: "" }
             val csvContent = buildString {
                 appendLine("TYPE,NAME,EXPIRY,QTY,WEIGHT,UNIT,BRAND,FAV,IMAGE,ACTION,TIMESTAMP,BARCODE,DATE_ADDED,DATE_MODIFIED")
                 for (p in products) {
-                    appendLine("PRODUCT,\"${escape(p.name)}\",${p.expirationDate ?: ""},${p.quantity},${p.weight ?: ""},${p.weightUnit},\"${escape(p.brand)}\",${p.isFavorite},\"${escape(p.imageUri)}\",,,${p.barcode ?: ""},${p.dateAdded},${p.dateModified ?: ""}")
+                    val sanitizedName = sanitizeCsvField(p.name)
+                    appendLine("PRODUCT,$sanitizedName,${p.expirationDate ?: ""},${p.quantity},${p.weight ?: ""},${p.weightUnit},${sanitizeCsvField(p.brand)},${p.isFavorite},${sanitizeCsvField(p.imageUri)},,,${p.barcode ?: ""},${p.dateAdded},${p.dateModified ?: ""}")
                 }
                 for (h in history) {
-                    appendLine("HISTORY,\"${escape(h.productName)}\",${h.expirationDate ?: ""},${h.quantity},${h.weight ?: ""},${h.weightUnit},\"${escape(h.brand)}\",${h.isFavorite},\"${escape(h.imageUri)}\",${h.action},${h.timestamp},${h.barcode ?: ""},${h.dateAdded},${h.dateModified ?: ""}")
+                    appendLine("HISTORY,${sanitizeCsvField(h.productName)},${h.expirationDate ?: ""},${h.quantity},${h.weight ?: ""},${h.weightUnit},${sanitizeCsvField(h.brand)},${h.isFavorite},${sanitizeCsvField(h.imageUri)},${h.action},${h.timestamp},${h.barcode ?: ""},${h.dateAdded},${h.dateModified ?: ""}")
                 }
             }
 
@@ -309,6 +312,20 @@ class SettingsActivity : ThemedAppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { Toast.makeText(this@SettingsActivity, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
+        }
+    }
+
+    /**
+     * Helper to wrap CSV fields in quotes if they contain commas, and escape existing quotes.
+     */
+    private fun sanitizeCsvField(text: String?): String {
+        if (text == null) return ""
+        val escaped = text.replace("\"", "\"\"")
+        return if (escaped.contains(",") || escaped.contains("\"")) {
+            android.util.Log.d("ExpiryX_Debug", "[TC-13] Sanitizing field: $text")
+            "\"$escaped\""
+        } else {
+            escaped
         }
     }
 

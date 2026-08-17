@@ -181,7 +181,10 @@ object StatsCalculator {
      * USE OF CODE STRUCTURES: 'if' selection for safety check.
      */
     private fun safePercent(numerator: Int, denominator: Int): Float {
-        if (denominator <= 0) return 0f
+        if (denominator <= 0) {
+            android.util.Log.d("ExpiryX_Debug", "[TC-12] Guarded divide-by-zero: Denominator is 0. Returning 0%")
+            return 0f
+        }
         return (numerator.toFloat() / denominator) * 100f
     }
 }

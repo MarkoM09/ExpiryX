@@ -132,13 +132,19 @@ object NotificationScheduler {
      * USE OF CODE STRUCTURES: Uses 'Calendar' instance with sequential 'set' and 'add' logic.
      */
     private fun calculateTriggerTime(expiryMillis: Long, daysBefore: Int, hour: Int, minute: Int): Long {
-        return Calendar.getInstance().apply {
-            timeInMillis = expiryMillis
-            add(Calendar.DAY_OF_YEAR, -daysBefore)
+        val dayMs = 24L * 60 * 60 * 1000
+        val exactTrigger = expiryMillis - (daysBefore * dayMs)
+        
+        // Ensure it triggers at the user-defined time of that day
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = exactTrigger
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
+        }
+        
+        android.util.Log.d("ExpiryX_Debug", "[TC-11] Alarm calculated: Expiry=$expiryMillis, DaysBefore=$daysBefore -> Trigger=${cal.timeInMillis}")
+        return cal.timeInMillis
     }
 }

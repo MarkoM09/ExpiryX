@@ -454,6 +454,7 @@ class MainActivity : ThemedAppCompatActivity() {
      */
     private fun performUndoableAction(product: Product, message: String, onCommit: () -> Unit) {
         pendingActions.add(product.uuid)
+        android.util.Log.d("ExpiryX_Debug", "[TC-10] Swipe action initiated for: ${product.name}. UUID: ${product.uuid}")
         refreshList()
 
         val snackbar = com.google.android.material.snackbar.Snackbar.make(
@@ -467,6 +468,7 @@ class MainActivity : ThemedAppCompatActivity() {
         snackbar.setAction("UNDO") {
             undone = true
             pendingActions.remove(product.uuid)
+            android.util.Log.d("ExpiryX_Debug", "[TC-10] UNDO clicked for: ${product.name}")
             refreshList()
         }
         
