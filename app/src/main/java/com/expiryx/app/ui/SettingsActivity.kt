@@ -97,8 +97,30 @@ class SettingsActivity : ThemedAppCompatActivity() {
                 .show()
         }
 
+        setupAboutSection()
+
         setupBottomNav()
         refreshAccentSubtitle()
+    }
+
+    private fun setupAboutSection() {
+        val githubUrl = "https://github.com/MarkoM09/ExpiryX/"
+
+        binding.donateCard.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl)))
+        }
+
+        binding.rateCard.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl)))
+        }
+
+        binding.privacyCard.setOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.privacy_policy_title)
+                .setMessage(android.text.Html.fromHtml(getString(R.string.privacy_policy_content), android.text.Html.FROM_HTML_MODE_LEGACY))
+                .setPositiveButton("Close", null)
+                .show()
+        }
     }
 
     /**

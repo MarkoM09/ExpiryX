@@ -2,8 +2,7 @@
   <img src="docs/logo.png" alt="ExpiryX Logo" width="120"/>
 </p>
 
-
-<h1 align="center">ExpiryX</h1>
+<h1 align="center">ExpiryX (Beta Testing Release)</h1>
 
 <p align="center">
   <em>Smart expiry tracking to reduce food waste and save money</em>
@@ -11,40 +10,43 @@
 
 ---
 
-## 📖 About
+## 📖 About ExpiryX
 
-ExpiryX is a modern Android app designed to help households **reduce food waste** by keeping track of grocery expiry dates.  
-With ExpiryX, you can:
+**ExpiryX** is an offline-first Android application designed for Australian households to track pantry inventory, reduce food waste, and minimize grocery costs.
 
-- 📷 **Scan barcodes or expiry labels** using your phone’s camera (powered by ML Kit).  
-- 🛒 **Log food items** with details like quantity, weight, notes, and favourites.  
-- ⏰ **Get notifications** before items expire so you can use them in time.  
-- 📂 **View history** of expired, used, or deleted products, all archived automatically.  
-- ⭐ **Mark favourites** to quickly find the products you care about most.  
-- 📊 **Export your data** to a CSV file for backup or analysis.  
-
-The app’s simple interface makes managing groceries easier, helping you save money and reduce environmental impact.
+### 🧪 What's in this Beta Build?
+This release is a **Beta Testing Build** designed for user evaluation. You will be testing:
+- 📷 **Barcode & Label Ingestion:** Rapid product scanning using Google ML Kit.
+- ⏱️ **4-Tap Quick Logging:** Fast manual and automated entry with pre-set expiry offsets (`+3 Days`).
+- 🎨 **Dual-Coded Interface:** Visual urgency indicators (traffic-light colors + geometric icons) adhering to WCAG 2.1 AA contrast.
+- 🛡️ **Data Safety & Recovery:** 5-second "Undo" state migration for deleted items.
+- 📊 **Local Data Management:** Offline storage retrieval and CSV data export.
 
 ---
 
-## 📲 Installation
+## 📲 How to Install the APK
 
-1. **Download the APK**
-   - Grab the latest release from the [Releases page](../../releases).
-
-2. **Allow Installation**
-   - On your Android device, enable installation from “Unknown Sources” if prompted.
-
-3. **Install & Launch**
-   - Open the APK file and install.  
-   - Launch *ExpiryX* and start tracking your groceries!
+1. **Download the APK:**
+   - Download `ExpiryX-v1.0.0-beta.apk` from the [Releases](../../releases) section.
+2. **Enable Unknown Sources:**
+   - Go to your Android device **Settings** > **Security** (or **Apps & notifications** > **Special app access**) and enable **Install Unknown Apps** for your browser or file manager.
+3. **Install & Open:**
+   - Tap the downloaded `.apk` file and select **Install**.
+   - Launch **ExpiryX** and accept camera/notification permissions when prompted.
 
 ---
 
-## 🛠 Requirements
 
-- **Android 7.0 (API 24)** or higher  
-- Camera permission (for barcode scanning)  
-- Notification permission (Android 13+)  
+## 🔒 Privacy Policy & Device Permissions
+
+* **Camera (`android.permission.CAMERA`):** Used exclusively for real-time barcode scanning. No image frames or photos are saved, transmitted, or uploaded.
+* **Notifications (`android.permission.POST_NOTIFICATIONS`):** Used solely for local expiry reminders scheduled on your device.
+* **Local Data Storage:** All pantry records, logs, and settings are saved strictly on your local device storage. ExpiryX does not collect personal analytics or sell user data.
 
 ---
+
+## 🛠 Technical Requirements
+
+* **Android Version:** Android 7.0 (API Level 24) or higher
+* **Hardware:** Functional rear camera with autofocus
+* **Network:** Offline-capable (Internet connection optional for extended product lookup APIs)

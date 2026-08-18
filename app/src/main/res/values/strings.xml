@@ -212,4 +212,7 @@
     <string name="expiry_status_expired">EXPIRED</string>
     <string name="expiry_status_urgent">URGENT</string>
     <string name="expiry_status_safe">SAFE</string>
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_subtitle">Data safety &amp; device permissions</string>
+    <string name="privacy_policy_content" translatable="false"><b>ExpiryX Privacy Commitment</b>\n\n<b>1. Camera Access (NFR04):</b> The camera is used solely for real-time barcode and expiry date scanning. No photos or video frames are saved, shared, or transmitted outside the application.\n\n<b>2. Data Storage:</b> All pantry records, product images, and history are stored locally on your device using an encrypted SQLite (Room) database. \n\n<b>3. No Data Tracking:</b> ExpiryX does not collect personally identifiable information (PII), analytics, or pantry data. We do not sell or share any user data with third parties.\n\n<b>4. Local Recovery:</b> CSV exports are stored in your device\'s local Downloads folder and are under your complete control.</string>
 </resources>

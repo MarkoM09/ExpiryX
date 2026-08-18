@@ -541,8 +541,7 @@
                 android:id="@+id/rate_card"
                 style="@style/SpecialSettingsCard"
                 android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginTop="6dp">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -565,7 +564,41 @@
                         android:layout_alignParentEnd="true">
 
                         <TextView style="@style/SpecialSettingsTitle" android:text="Rate this App" />
-                        <TextView style="@style/SpecialSettingsSubtitle" android:text="Leave a review on Google Play" />
+                        <TextView style="@style/SpecialSettingsSubtitle" android:text="Leave a review on GitHub" />
+                    </LinearLayout>
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Privacy Policy -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/privacy_card"
+                style="@style/SpecialSettingsCard"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="16dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:id="@+id/privacy_icon_container"
+                        style="@style/SettingsIconContainer"
+                        android:backgroundTint="@color/gold">
+
+                        <ImageView
+                            style="@style/SettingsIcon"
+                            android:src="@drawable/ic_check"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/SettingsTextLayout"
+                        android:layout_toEndOf="@id/privacy_icon_container"
+                        android:layout_alignParentEnd="true">
+
+                        <TextView style="@style/SpecialSettingsTitle" android:text="@string/privacy_policy_title" />
+                        <TextView style="@style/SpecialSettingsSubtitle" android:text="@string/privacy_policy_subtitle" />
                     </LinearLayout>
                 </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
