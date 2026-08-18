@@ -202,7 +202,7 @@
 
     <!-- Accessibility -->
     <string name="accessibility_title">ACCESSIBILITY</string>
-    <string name="clear_all">Clear All</string>
+    <string name="clear_all">Clear All</string>SSS
     <string name="clear_fields_confirm">Are you sure you want to clear all fields?</string>
     <string name="high_contrast_title">Increase Text Contrast</string>
     <string name="high_contrast_subtitle">Force absolute black/white text</string>
