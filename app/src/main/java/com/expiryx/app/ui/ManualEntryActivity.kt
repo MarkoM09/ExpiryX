@@ -107,8 +107,40 @@ class ManualEntryActivity : ThemedAppCompatActivity() {
         loadProductData()
         updateToolbarTitle()
         setupListeners()
+        setupQuickAddButtons()
         applyDateInputMode(DateInputMode.WHEEL)
         setupKeyboardDismissal()
+    }
+
+    private fun setupQuickAddButtons() {
+        val wheel = binding.expiryDateWheel
+        wheel.btnQuickAdd3D.setOnClickListener { 
+            android.util.Log.d("ExpiryX_Debug", "[QuickAdd] Adding 3 days")
+            addExpiryTime(Calendar.DAY_OF_YEAR, 3) 
+        }
+        wheel.btnQuickAdd1W.setOnClickListener { 
+            android.util.Log.d("ExpiryX_Debug", "[QuickAdd] Adding 1 week")
+            addExpiryTime(Calendar.DAY_OF_YEAR, 7) 
+        }
+        wheel.btnQuickAdd1M.setOnClickListener { 
+            android.util.Log.d("ExpiryX_Debug", "[QuickAdd] Adding 1 month")
+            addExpiryTime(Calendar.MONTH, 1) 
+        }
+        wheel.btnQuickAdd3M.setOnClickListener { 
+            android.util.Log.d("ExpiryX_Debug", "[QuickAdd] Adding 3 months")
+            addExpiryTime(Calendar.MONTH, 3) 
+        }
+    }
+
+    private fun addExpiryTime(field: Int, amount: Int) {
+        val cal = Calendar.getInstance()
+        // If date is in the past or not set, start from today
+        val currentExpiry = expiryMillis
+        if (currentExpiry != null && currentExpiry > System.currentTimeMillis()) {
+            cal.timeInMillis = currentExpiry
+        }
+        cal.add(field, amount)
+        setExpiryFromMillis(cal.timeInMillis)
     }
 
     @SuppressLint("ClickableViewAccessibility")
