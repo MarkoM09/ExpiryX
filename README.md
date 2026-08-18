@@ -17,7 +17,7 @@
 ### 🧪 What's in this Beta Build?
 This release is a **Beta Testing Build** designed for user evaluation. You will be testing:
 - 📷 **Barcode & Label Ingestion:** Rapid product scanning using Google ML Kit.
-- ⏱️ **4-Tap Quick Logging:** Fast manual and automated entry with pre-set expiry offsets (`+3 Days`).
+- ⏱️ **4-Tap Quick Logging:** Fast manual and automated entry.
 - 🎨 **Dual-Coded Interface:** Visual urgency indicators (traffic-light colors + geometric icons) adhering to WCAG 2.1 AA contrast.
 - 🛡️ **Data Safety & Recovery:** 5-second "Undo" state migration for deleted items.
 - 📊 **Local Data Management:** Offline storage retrieval and CSV data export.
